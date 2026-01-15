@@ -86,7 +86,7 @@ class BeaconBattery:
 
 
 class Beacon:
-    def __init__(self, beacon_id, position, initial_battery, uwb_params):
+    def __init__(self, beacon_id, position, uwb_params, initial_battery=100.0):
         self.id = beacon_id
         self.position = np.array(position)
         self.energy_model = UWBEnergyModel(uwb_params)
