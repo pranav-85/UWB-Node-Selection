@@ -15,7 +15,8 @@ from models.beacon import Beacon, UWBHardwareParams
 from core.link_model import assign_beacon_links
 from config import (
     GRID_SIZE, AGENT_INITIAL_X, AGENT_INITIAL_Y, AGENT_STEP_SIZE,
-    NUM_BEACONS, BEACON_INITIAL_BATTERY, NUM_SELECTED_BEACONS, LOS_PROBABILITY
+    NUM_BEACONS, BEACON_INITIAL_BATTERY, BEACON_POSITIONS, NUM_SELECTED_BEACONS,
+    UWB_HARDWARE_PARAMS, LOS_PROBABILITY
 )
 
 
@@ -47,20 +48,29 @@ class Environment:
         self.records = []  # List to store timestep records
         
     def _create_beacons(self) -> List[Beacon]:
-        """Create 6 beacons at corners and near walls."""
-        positions = [
-            (0.5, 0.5),              # Bottom-left corner
-            (self.grid_size - 0.5, 0.5),    # Bottom-right corner
-            (0.5, self.grid_size - 0.5),    # Top-left corner
-            (self.grid_size - 0.5, self.grid_size - 0.5),  # Top-right corner
-            (self.grid_size / 2, 0.5),      # Bottom wall middle
-            (self.grid_size / 2, self.grid_size - 0.5),    # Top wall middle
-        ]
+        """Create beacons at positions specified in config."""
+        uwb_params = UWBHardwareParams(
+            P_COR=UWB_HARDWARE_PARAMS['P_COR'],
+            P_ADC=UWB_HARDWARE_PARAMS['P_ADC'],
+            P_LNA=UWB_HARDWARE_PARAMS['P_LNA'],
+            P_VGA=UWB_HARDWARE_PARAMS['P_VGA'],
+            P_GEN=UWB_HARDWARE_PARAMS['P_GEN'],
+            P_SYN=UWB_HARDWARE_PARAMS['P_SYN'],
+            P_EST=UWB_HARDWARE_PARAMS['P_EST'],
+            T_SP=UWB_HARDWARE_PARAMS['T_SP'],
+            T_PHR=UWB_HARDWARE_PARAMS['T_PHR'],
+            T_PAYLOAD=UWB_HARDWARE_PARAMS['T_PAYLOAD'],
+            T_TR=UWB_HARDWARE_PARAMS['T_TR'],
+            T_IPS=UWB_HARDWARE_PARAMS['T_IPS'],
+            T_ACK=UWB_HARDWARE_PARAMS['T_ACK'],
+            rho_c=UWB_HARDWARE_PARAMS['rho_c'],
+            rho_r=UWB_HARDWARE_PARAMS['rho_r'],
+            M=UWB_HARDWARE_PARAMS['M'],
+        )
         
-        uwb_params = UWBHardwareParams()
         beacons = [
             Beacon(beacon_id=i, position=pos, uwb_params=uwb_params, initial_battery=BEACON_INITIAL_BATTERY)
-            for i, pos in enumerate(positions)
+            for i, pos in enumerate(BEACON_POSITIONS)
         ]
         return beacons
     
@@ -103,7 +113,7 @@ class Environment:
             'timestep': len(self.records),
             'agent_x': agent_x,
             'agent_y': agent_y,
-            'selected_beacons': selected_beacons_str,
+            'selected_beacons_rns': selected_beacons_str,
             'los_links': los_links_str
         })
     

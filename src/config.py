@@ -10,6 +10,36 @@ AGENT_STEP_SIZE = 0.5
 NUM_BEACONS = 6
 BEACON_INITIAL_BATTERY = 100.0
 
+# Beacon positions (relative to grid size)
+BEACON_POSITIONS = [
+    (0.5, 0.5),              # Bottom-left corner
+    (GRID_SIZE - 0.5, 0.5),    # Bottom-right corner
+    (0.5, GRID_SIZE - 0.5),    # Top-left corner
+    (GRID_SIZE - 0.5, GRID_SIZE - 0.5),  # Top-right corner
+    (GRID_SIZE / 2, 0.5),      # Bottom wall middle
+    (GRID_SIZE / 2, GRID_SIZE - 0.5),    # Top wall middle
+]
+
+# UWB Hardware Parameters
+UWB_HARDWARE_PARAMS = {
+    'P_COR': 10.0,
+    'P_ADC': 15.0,
+    'P_LNA': 9.0,
+    'P_VGA': 5.0,
+    'P_GEN': 8.0,
+    'P_SYN': 6.0,
+    'P_EST': 7.0,
+    'T_SP': 0.0004,
+    'T_PHR': 0.0002,
+    'T_PAYLOAD': 0.002,
+    'T_TR': 0.0001,
+    'T_IPS': 0.00005,
+    'T_ACK': 0.0002,
+    'rho_c': 1,
+    'rho_r': 1,
+    'M': 1,
+}
+
 # Localization parameters
 NUM_SELECTED_BEACONS = 3
 
