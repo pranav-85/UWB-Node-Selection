@@ -146,6 +146,14 @@ class Environment:
         
         print(f"Scenario saved to {filepath}")
     
+    def get_beacon_positions(self) -> List[Tuple[float, float]]:
+        """Get list of beacon positions."""
+        return [beacon.position.tolist() for beacon in self.beacons]
+    
+    def get_battery_levels(self) -> List[float]:
+        """Get current battery levels of all beacons."""
+        return [beacon.current_battery_level() for beacon in self.beacons]
+    
     def visualize(
         self,
         title: str = "UWB Network Simulation",

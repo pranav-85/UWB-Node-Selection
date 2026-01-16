@@ -50,3 +50,8 @@ STEP_PAUSE_TIME = 1  # seconds
 
 # Link model parameters
 LOS_PROBABILITY = 0.5
+
+# Reward function parameters
+EPSILON = 1e-6  # Small constant to avoid division by zero
+ER_TH = 2.0     # Localization error threshold
+MD_TH = 0.5     # Mean deviation threshold 
