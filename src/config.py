@@ -7,7 +7,7 @@ AGENT_INITIAL_Y = GRID_SIZE / 2
 AGENT_STEP_SIZE = 0.5
 
 # Beacon parameters
-NUM_BEACONS = 6
+NUM_BEACONS = 4
 BEACON_INITIAL_BATTERY = 100.0
 
 # Beacon positions (relative to grid size)
@@ -16,8 +16,6 @@ BEACON_POSITIONS = [
     (GRID_SIZE - 0.5, 0.5),    # Bottom-right corner
     (0.5, GRID_SIZE - 0.5),    # Top-left corner
     (GRID_SIZE - 0.5, GRID_SIZE - 0.5),  # Top-right corner
-    (GRID_SIZE / 2, 0.5),      # Bottom wall middle
-    (GRID_SIZE / 2, GRID_SIZE - 0.5),    # Top wall middle
 ]
 
 # UWB Hardware Parameters
@@ -54,4 +52,4 @@ LOS_PROBABILITY = 0.5
 # Reward function parameters
 EPSILON = 1e-6  # Small constant to avoid division by zero
 ER_TH = 2.0     # Localization error threshold
-MD_TH = 0.5     # Mean deviation threshold 
+MD_TH = 0.5     # Mean deviation threshold

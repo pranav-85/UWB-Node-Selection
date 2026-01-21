@@ -367,7 +367,7 @@ if __name__ == '__main__':
     print(f"{'='*60}\n")
     
     # Train
-    episode_rewards = trainer.train(num_episodes=100, max_steps=100, target_update_freq=10)
+    episode_rewards = trainer.train(num_episodes=500, max_steps=150, target_update_freq=10)
     
     # Save model
     model_path = Path(__file__).parent.parent / 'models' / 'dqn_model.pt'
