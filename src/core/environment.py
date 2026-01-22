@@ -16,7 +16,7 @@ from core.link_model import assign_beacon_links
 from config import (
     GRID_SIZE, AGENT_INITIAL_X, AGENT_INITIAL_Y, AGENT_STEP_SIZE,
     NUM_BEACONS, BEACON_INITIAL_BATTERY, BEACON_POSITIONS, NUM_SELECTED_BEACONS,
-    UWB_HARDWARE_PARAMS, LOS_PROBABILITY
+    UWB_HARDWARE_PARAMS, LOS_PROBABILITY, BATTERY_CONSUMPTION_MULTIPLIER
 )
 
 
@@ -69,7 +69,9 @@ class Environment:
         )
         
         beacons = [
-            Beacon(beacon_id=i, position=pos, uwb_params=uwb_params, initial_battery=BEACON_INITIAL_BATTERY)
+            Beacon(beacon_id=i, position=pos, uwb_params=uwb_params, 
+                  initial_battery=BEACON_INITIAL_BATTERY,
+                  consumption_multiplier=BATTERY_CONSUMPTION_MULTIPLIER)
             for i, pos in enumerate(BEACON_POSITIONS)
         ]
         return beacons

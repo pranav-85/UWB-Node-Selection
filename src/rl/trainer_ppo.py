@@ -200,9 +200,15 @@ def train_ppo(
 
 
 def main():
-    """Train PPO agent for beacon selection."""
+    """Train PPO agent for beacon selection with variable episode length.
+    
+    Per paper specification:
+    - 500 training epochs
+    - Variable episode length based on beacon battery depletion
+    - Convergence observed around epoch 350
+    """
     print("\n" + "="*70)
-    print("TRAINING PPO AGENT FOR BEACON SELECTION")
+    print("TRAINING PPO AGENT FOR BEACON SELECTION (500 EPOCHS)")
     print("="*70 + "\n")
     
     # Generate all possible actions (beacon combinations)
@@ -212,8 +218,9 @@ def main():
     # Configuration
     state_dim = 2 + NUM_BEACONS + NUM_BEACONS  # agent position + batteries + los links
     action_dim = len(possible_actions)  # Number of possible beacon combinations
-    num_episodes = 100
+    num_episodes = 500  # Paper specifies 500 epochs
     batch_size = 64
+    max_steps = 500  # Variable episode length with early termination
     
     # Initialize trainer
     trainer = PPOTrainer(
@@ -232,8 +239,13 @@ def main():
     print(f"Possible beacon combinations: {action_dim}")
     print(f"Training for {num_episodes} episodes\n")
     
+    # Visualization settings
+    visualize = False  # Set to True to visualize every viz_freq episodes
+    viz_freq = 50     # Visualize every N episodes
+    
     # Training loop
     episode_rewards = []
+    episode_lengths = []
     pbar = tqdm(range(num_episodes), desc="Training PPO", position=0)
     
     for episode in pbar:
@@ -242,8 +254,9 @@ def main():
                         (env.current_links if env.current_links is not None else [0] * NUM_BEACONS),
                         dtype=np.float32)
         ep_reward = 0
+        ep_length = 0
         
-        for step in range(100):
+        for step in range(max_steps):
             env.step()
             
             # Get action from policy
@@ -268,13 +281,16 @@ def main():
             agent_pos = np.array(env.agent.get_position())
             selected_positions = np.array([env.beacons[i].position for i in selected_beacons])
             los_flags = [env.current_links[i] for i in selected_beacons]
-            reward = compute_reward(agent_pos, selected_positions, los_flags, env.get_battery_levels())
+            battery_levels = env.get_battery_levels()
+            reward = compute_reward(agent_pos, selected_positions, los_flags, battery_levels)
             
             # Store transition
             next_state = np.array(list(env.agent.get_position()) + env.get_battery_levels() + 
                                  (env.current_links if env.current_links is not None else [0] * NUM_BEACONS),
                                  dtype=np.float32)
-            done = step == 99
+            # Episode terminates if any beacon battery depleted or max_steps reached
+            any_battery_depleted = any(level <= 0 for level in battery_levels)
+            done = any_battery_depleted or step == max_steps - 1
             
             trainer.buffer.states.append(state)
             trainer.buffer.actions.append(action)
@@ -285,6 +301,7 @@ def main():
             
             state = next_state
             ep_reward += reward
+            ep_length += 1
             
             if done:
                 break
@@ -292,11 +309,27 @@ def main():
         # Update policy
         ppo_update(trainer)
         episode_rewards.append(ep_reward)
+        episode_lengths.append(ep_length)
+        
+        # Visualize environment periodically
+        if visualize and (episode + 1) % viz_freq == 0:
+            import matplotlib.pyplot as plt
+            fig, ax = env.visualize()
+            fig.suptitle(f'Episode {episode + 1} - Reward: {ep_reward:.4f} - Length: {ep_length}', 
+                        fontsize=14, fontweight='bold')
+            plt.tight_layout()
+            plt.show(block=False)
+            plt.pause(2)
+            plt.close(fig)
         
         # Update progress bar
         if len(episode_rewards) >= 10:
             avg_reward = np.mean(episode_rewards[-10:])
-            pbar.set_postfix({'Avg Reward (last 10)': f'{avg_reward:.4f}'})
+            avg_length = np.mean(episode_lengths[-10:])
+            pbar.set_postfix({
+                'Avg Reward': f'{avg_reward:.4f}',
+                'Avg Length': f'{avg_length:.0f}'
+            })
     
     pbar.close()
     
@@ -311,10 +344,11 @@ def main():
     print("\n" + "="*70)
     print("TRAINING COMPLETED")
     print("="*70)
-    print(f"Total episodes: {num_episodes}")
+    print(f"Total episodes: {num_episodes} (converged after ~350 per paper)")
     print(f"Final average reward: {np.mean(episode_rewards[-10:]):.4f}")
     print(f"Max reward: {np.max(episode_rewards):.4f}")
     print(f"Min reward: {np.min(episode_rewards):.4f}")
+    print(f"Avg episode length: {np.mean(episode_lengths[-10:]):.0f} steps (variable due to battery depletion)")
     print("="*70 + "\n")
     
     return episode_rewards

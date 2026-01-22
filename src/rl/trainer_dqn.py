@@ -248,18 +248,27 @@ class DQNTrainer:
         self.epsilon = max(self.epsilon_end, self.epsilon * self.epsilon_decay)
     
     def train(self, 
-              num_episodes: int = 100,
-              max_steps: int = 100,
-              target_update_freq: int = 10):
+              num_episodes: int = 500,
+              max_steps: int = 500,
+              target_update_freq: int = 10,
+              visualize: bool = False,
+              viz_freq: int = 50):
         """
-        Train the DQN agent.
+        Train the DQN agent with variable episode length based on battery depletion.
         
         Args:
-            num_episodes: Number of training episodes
-            max_steps: Maximum steps per episode
+            num_episodes: Number of training episodes (default 500 per paper)
+            max_steps: Maximum steps per episode before termination
             target_update_freq: Frequency of target network updates
+            visualize: Whether to visualize the environment during training
+            viz_freq: Frequency of visualization (every N episodes)
+        
+        Note:
+            Episode terminates early if any beacon battery is depleted.
+            This creates variable episode lengths based on selection policy quality.
         """
         episode_rewards = []
+        episode_lengths = []
         
         # Outer progress bar for episodes
         pbar_episodes = tqdm(range(num_episodes), desc="Training Episodes", position=0)
@@ -268,6 +277,7 @@ class DQNTrainer:
             env = Environment()
             state = self.state_to_vector(env)
             episode_reward = 0
+            episode_length = 0
             losses = []
             
             # Inner progress bar for steps
@@ -292,7 +302,9 @@ class DQNTrainer:
                 
                 # Get next state
                 next_state = self.state_to_vector(env)
-                done = step == max_steps - 1
+                # Episode terminates if any beacon battery depleted or max_steps reached
+                any_battery_depleted = any(level <= 0 for level in battery_levels)
+                done = any_battery_depleted or step == max_steps - 1
                 
                 # Store in replay buffer
                 self.replay_buffer.add(state, action, reward, next_state, done)
@@ -304,14 +316,31 @@ class DQNTrainer:
                 
                 state = next_state
                 episode_reward += reward
+                episode_length += 1
                 
                 # Update progress bar with current stats
                 pbar_steps.set_postfix({
                     'Reward': f'{reward:.4f}',
+                    'Battery Min': f'{min(battery_levels):.2f}%',
                     'Avg Loss': f'{np.mean(losses[-10:]):.6f}' if losses else 'N/A'
                 })
+                
+                if done:
+                    break
             
             pbar_steps.close()
+            episode_lengths.append(episode_length)
+            
+            # Visualize environment periodically
+            if visualize and (episode + 1) % viz_freq == 0:
+                import matplotlib.pyplot as plt
+                fig, ax = env.visualize()
+                fig.suptitle(f'Episode {episode + 1} - Reward: {episode_reward:.4f} - Length: {episode_length}', 
+                            fontsize=14, fontweight='bold')
+                plt.tight_layout()
+                plt.show(block=False)
+                plt.pause(2)
+                plt.close(fig)
             
             # Update target network
             if (episode + 1) % target_update_freq == 0:
@@ -323,9 +352,11 @@ class DQNTrainer:
             episode_rewards.append(episode_reward)
             
             # Update main progress bar with episode stats
-            avg_reward = np.mean(episode_rewards[-10:])
+            avg_reward = np.mean(episode_rewards[-10:]) if len(episode_rewards) >= 10 else np.mean(episode_rewards)
+            avg_length = np.mean(episode_lengths[-10:]) if len(episode_lengths) >= 10 else np.mean(episode_lengths)
             pbar_episodes.set_postfix({
                 'Avg Reward': f'{avg_reward:.4f}',
+                'Avg Length': f'{avg_length:.0f}',
                 'Epsilon': f'{self.epsilon:.4f}',
                 'Buffer Size': len(self.replay_buffer)
             })
@@ -366,8 +397,10 @@ if __name__ == '__main__':
     print(f"State size: {state_size}")
     print(f"{'='*60}\n")
     
-    # Train
-    episode_rewards = trainer.train(num_episodes=500, max_steps=150, target_update_freq=10)
+    # Train (500 epochs as per paper, with variable episode length based on battery depletion)
+    # Set visualize=True to see the environment during training every 50 episodes
+    episode_rewards = trainer.train(num_episodes=500, max_steps=500, target_update_freq=20, 
+                                   visualize=True, viz_freq=50)
     
     # Save model
     model_path = Path(__file__).parent.parent / 'models' / 'dqn_model.pt'
@@ -376,7 +409,7 @@ if __name__ == '__main__':
     
     print(f"\n{'='*60}")
     print(f"Training completed!")
-    print(f"Total episodes: 100")
+    print(f"Total episodes: 500 (converged after ~350 per paper)")
     print(f"Final average reward: {np.mean(episode_rewards[-10:]):.4f}")
     print(f"Model saved to: {model_path}")
     print(f"{'='*60}\n")

@@ -27,8 +27,9 @@ class UWBHardwareParams:
 
 
 class UWBEnergyModel:
-    def __init__(self, params: UWBHardwareParams):
+    def __init__(self, params: UWBHardwareParams, consumption_multiplier=1.0):
         self.p = params
+        self.consumption_multiplier = consumption_multiplier
         self.energy_per_packet = self._compute_energy_per_packet()
 
     def _receiver_power(self):
@@ -63,7 +64,10 @@ class UWBEnergyModel:
         EACK = self.p.P_SYN * self.p.T_ACK
 
         # Total energy per localization step
-        return 2 * Etr + ERX + 2 * EIPS + EACK
+        total_energy = 2 * Etr + ERX + 2 * EIPS + EACK
+        
+        # Apply consumption multiplier
+        return total_energy * self.consumption_multiplier
 
 
 class BeaconBattery:
@@ -86,10 +90,10 @@ class BeaconBattery:
 
 
 class Beacon:
-    def __init__(self, beacon_id, position, uwb_params, initial_battery=100.0):
+    def __init__(self, beacon_id, position, uwb_params, initial_battery=100.0, consumption_multiplier=1.0):
         self.id = beacon_id
         self.position = np.array(position)
-        self.energy_model = UWBEnergyModel(uwb_params)
+        self.energy_model = UWBEnergyModel(uwb_params, consumption_multiplier=consumption_multiplier)
         self.battery = BeaconBattery(
             beacon_id,
             initial_battery,

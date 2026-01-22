@@ -122,7 +122,8 @@ def evaluate_method(method_name: str,
                    trainer: DQNTrainer = None,
                    ppo_model: PPOActorCritic = None,
                    device: str = 'cpu',
-                   num_epochs: int = 100) -> EvaluationMetrics:
+                   num_epochs: int = 100,
+                   seed_offset: int = 0) -> EvaluationMetrics:
     """
     Evaluate a beacon selection method.
     
@@ -133,6 +134,7 @@ def evaluate_method(method_name: str,
         ppo_model: PPO model (for PPO method)
         device: Device to use for PPO
         num_epochs: Number of epochs
+        seed_offset: Offset for random seed to ensure different epochs have different randomness
     
     Returns:
         EvaluationMetrics object
@@ -142,6 +144,10 @@ def evaluate_method(method_name: str,
     pbar = tqdm(range(num_epochs), desc=f"Evaluating {method_name}", position=0)
     
     for epoch in pbar:
+        # Set seed based on epoch to ensure all methods see same environment sequence
+        np.random.seed(epoch + seed_offset)
+        torch.manual_seed(epoch + seed_offset)
+        
         env = Environment()
         
         for step in range(100):
@@ -398,20 +404,23 @@ def main():
     else:
         print(f"Warning: PPO Model not found at {ppo_model_path}\n")
     
-    # Evaluate methods
+    # Evaluate methods on same simulations (same seeds)
     results = {}
     
+    print("Evaluating all methods on same simulation sequences...\n")
+    seed_offset = 42  # Base seed for reproducibility
+    
     print("Evaluating Random Node Selection...")
-    results['Random'] = evaluate_method('Random', random_selection, num_epochs=2000)
+    results['Random'] = evaluate_method('Random', random_selection, num_epochs=2000, seed_offset=seed_offset)
     
     print("\nEvaluating Nearest Neighbor...")
-    results['Nearest Neighbor'] = evaluate_method('Nearest Neighbor', nearest_neighbor_selection, num_epochs=2000)
+    results['Nearest Neighbor'] = evaluate_method('Nearest Neighbor', nearest_neighbor_selection, num_epochs=2000, seed_offset=seed_offset)
     
     print("\nEvaluating DQN-based Selection...")
-    results['DQN'] = evaluate_method('DQN', rl_selection, trainer=trainer, num_epochs=2000)
+    results['DQN'] = evaluate_method('DQN', rl_selection, trainer=trainer, num_epochs=2000, seed_offset=seed_offset)
     
     print("\nEvaluating PPO-based Selection...")
-    results['PPO'] = evaluate_method('PPO', ppo_selection, ppo_model=ppo_model, device=device, num_epochs=2000)
+    results['PPO'] = evaluate_method('PPO', ppo_selection, ppo_model=ppo_model, device=device, num_epochs=2000, seed_offset=seed_offset)
     
     # Print summary statistics
     print("\n" + "="*70)

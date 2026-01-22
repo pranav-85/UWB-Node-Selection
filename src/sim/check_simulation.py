@@ -9,14 +9,13 @@ from config import NUM_STEPS, VISUALIZATION_FIGSIZE, STEP_PAUSE_TIME
 # Enable interactive mode
 plt.ion()
 
+# Create environment
 env = Environment()
-
-# Start recording
-env.start_recording()
 
 # Create ONE persistent figure
 fig, ax = plt.subplots(figsize=VISUALIZATION_FIGSIZE)
 
+# Run simulation
 for step in range(NUM_STEPS):
     env.step()
 
@@ -31,10 +30,6 @@ for step in range(NUM_STEPS):
     fig.canvas.flush_events()
 
     plt.pause(STEP_PAUSE_TIME)  # control animation speed
-
-# Stop recording and save
-env.stop_recording()
-env.save_scenario(filename='test_scenario')
 
 # Keep final frame visible
 plt.ioff()
