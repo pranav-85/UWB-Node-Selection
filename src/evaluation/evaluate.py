@@ -13,7 +13,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from core.environment import Environment
 from reward.reward import compute_reward
 from rl.trainer_dqn import DQNTrainer
-from rl.trainer_ppo import PPOActorCritic
+from localization.trilateration import trilateration_2d, compute_noisy_distances, localization_error
 from config import NUM_BEACONS, NUM_SELECTED_BEACONS
 
 
@@ -28,6 +28,7 @@ class EvaluationMetrics:
         self.los_selections = 0
         self.nlos_selections = 0
         self.time_steps = 0
+        self.beacon_counts = np.zeros(NUM_BEACONS)
     
     def add_error(self, error):
         self.localization_errors.append(error)
@@ -42,6 +43,7 @@ class EvaluationMetrics:
     def add_selected_beacons(self, indices, los_flags):
         self.selected_beacons_history.append(indices)
         for idx in indices:
+            self.beacon_counts[idx] += 1
             if los_flags[idx]:
                 self.los_selections += 1
             else:
@@ -55,10 +57,13 @@ class EvaluationMetrics:
             'std_error': np.std(self.localization_errors),
             'min_error': np.min(self.localization_errors),
             'max_error': np.max(self.localization_errors),
+            'error_90th': np.percentile(self.localization_errors, 90),
+            'error_95th': np.percentile(self.localization_errors, 95),
             'mean_reward': np.mean(self.rewards),
             'final_batteries': {i: self.battery_levels[i][-1] for i in range(NUM_BEACONS)},
             'battery_deviation': self._compute_battery_deviation(),
             'los_ratio': self.los_selections / (self.los_selections + self.nlos_selections) if (self.los_selections + self.nlos_selections) > 0 else 0,
+            'selection_frequency': self.beacon_counts / (np.sum(self.beacon_counts) if np.sum(self.beacon_counts) > 0 else 1),
             'localization_errors': self.localization_errors,
             'battery_levels': dict(self.battery_levels),
             'rewards': self.rewards,
@@ -96,32 +101,9 @@ def rl_selection(env: Environment, trainer: DQNTrainer) -> list:
     return list(trainer.possible_actions[action])
 
 
-def ppo_selection(env: Environment, ppo_model: PPOActorCritic, device: str) -> list:
-    """PPO-based beacon selection."""
-    # Create state vector
-    state = np.array(list(env.agent.get_position()) + env.get_battery_levels() + 
-                    (env.current_links if env.current_links is not None else [0] * NUM_BEACONS),
-                    dtype=np.float32)
-    
-    # Get action from PPO model
-    state_tensor = torch.FloatTensor(state).unsqueeze(0).to(device)
-    with torch.no_grad():
-        logits, _ = ppo_model(state_tensor)
-    
-    # Select action with highest probability
-    action_probs = torch.softmax(logits, dim=1)
-    action = action_probs.argmax(dim=1).item()
-    
-    # Convert action to beacon indices
-    possible_actions = list(combinations(range(NUM_BEACONS), NUM_SELECTED_BEACONS))
-    return list(possible_actions[action])
-
-
 def evaluate_method(method_name: str, 
                    selection_func,
                    trainer: DQNTrainer = None,
-                   ppo_model: PPOActorCritic = None,
-                   device: str = 'cpu',
                    num_epochs: int = 100,
                    seed_offset: int = 0) -> EvaluationMetrics:
     """
@@ -131,8 +113,6 @@ def evaluate_method(method_name: str,
         method_name: Name of the method
         selection_func: Function to select beacons
         trainer: DQN trainer (for DQN method)
-        ppo_model: PPO model (for PPO method)
-        device: Device to use for PPO
         num_epochs: Number of epochs
         seed_offset: Offset for random seed to ensure different epochs have different randomness
     
@@ -150,36 +130,52 @@ def evaluate_method(method_name: str,
         
         env = Environment()
         
+        # Critical battery threshold: terminate when any beacon drops below this level
+        CRITICAL_BATTERY_THRESHOLD = 10.0  # percent
+        
         for step in range(100):
-            env.step()
-            
-            # Select beacons
+            # Select beacons FIRST based on current state (before environment transitions)
             if trainer is not None:
                 selected_indices = selection_func(env, trainer)
-            elif ppo_model is not None:
-                selected_indices = selection_func(env, ppo_model, device)
             else:
                 selected_indices = selection_func(env)
             
+            # Apply beacon selection to environment
             env.selected_beacon_indices = selected_indices
             
-            # Compute error (using distance from agent)
+            # NOW step the environment with the applied action
+            env.step()
+            
+            # Compute metrics on the new state AFTER environment transition
             agent_pos = np.array(env.agent.get_position())
             selected_positions = np.array([env.beacons[i].position for i in selected_indices])
+            los_flags = [env.current_links[i] for i in selected_indices]
             
-            # Simple centroid-based localization error
-            centroid = np.mean(selected_positions, axis=0)
-            error = np.linalg.norm(agent_pos - centroid)
+            # Get noisy distances using same model as training
+            distances = compute_noisy_distances(agent_pos, selected_positions, los_flags)
+            
+            # Estimate position via trilateration
+            est_x, est_y = trilateration_2d(selected_positions, distances)
+            est_pos = np.array([est_x, est_y])
+            
+            # Compute error: ||ground_truth - estimated||
+            error = np.sqrt(np.sum((agent_pos - est_pos) ** 2))
             metrics.add_error(error)
             
             # Compute reward
-            los_flags = [env.current_links[i] for i in selected_indices]
             reward = compute_reward(agent_pos, selected_positions, los_flags, env.get_battery_levels())
             metrics.add_reward(reward)
             
             # Track metrics
             metrics.add_battery_levels(env.get_battery_levels())
             metrics.add_selected_beacons(selected_indices, env.current_links)
+            
+            # Early termination: if any beacon's battery drops below critical threshold
+            battery_levels = env.get_battery_levels()
+            min_battery = min(battery_levels)
+            if min_battery <= CRITICAL_BATTERY_THRESHOLD:
+                # Episode ends when system degrades (any beacon reaches critical level)
+                break
         
         pbar.update(1)
     
@@ -239,7 +235,10 @@ def plot_error_comparison(results: dict):
 
 def plot_battery_levels(results: dict):
     """Plot remaining battery levels over time."""
-    fig, axes = plt.subplots(2, 3, figsize=(15, 10))
+    # Create dynamic grid based on number of beacons
+    num_cols = 3
+    num_rows = (NUM_BEACONS + num_cols - 1) // num_cols
+    fig, axes = plt.subplots(num_rows, num_cols, figsize=(15, 5 * num_rows))
     axes = axes.flatten()
     
     methods = list(results.keys())
@@ -372,12 +371,12 @@ def plot_los_ratio_comparison(results: dict):
 
 def main():
     print("\n" + "="*70)
-    print("BEACON SELECTION EVALUATION - 4 METHODS")
+    print("BEACON SELECTION EVALUATION - 3 METHODS")
     print("="*70 + "\n")
     
     # Load trained DQN model
     print("Loading trained DQN model...")
-    state_size = 2 + NUM_BEACONS + NUM_BEACONS
+    state_size = NUM_BEACONS  # Only battery levels (observable), no ground-truth position or LoS flags
     trainer = DQNTrainer(state_size=state_size)
     dqn_model_path = Path(__file__).parent.parent / 'models' / 'dqn_model.pt'
     
@@ -389,21 +388,6 @@ def main():
         print(f"Warning: Model not found at {dqn_model_path}")
         print("Using untrained model for evaluation")
     
-    # Load trained PPO model
-    print("\nLoading trained PPO model...")
-    action_dim = len(list(combinations(range(NUM_BEACONS), NUM_SELECTED_BEACONS)))
-    ppo_model = PPOActorCritic(state_dim=state_size, action_dim=action_dim)
-    ppo_model_path = Path(__file__).parent.parent / 'models' / 'ppo_model.pt'
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    
-    if ppo_model_path.exists():
-        ppo_model.load_state_dict(torch.load(str(ppo_model_path), map_location=device))
-        ppo_model.to(device)
-        ppo_model.eval()
-        print(f"PPO Model loaded from {ppo_model_path} (Device: {device})\n")
-    else:
-        print(f"Warning: PPO Model not found at {ppo_model_path}\n")
-    
     # Evaluate methods on same simulations (same seeds)
     results = {}
     
@@ -411,16 +395,13 @@ def main():
     seed_offset = 42  # Base seed for reproducibility
     
     print("Evaluating Random Node Selection...")
-    results['Random'] = evaluate_method('Random', random_selection, num_epochs=2000, seed_offset=seed_offset)
+    results['Random'] = evaluate_method('Random', random_selection, num_epochs=1000, seed_offset=seed_offset)
     
     print("\nEvaluating Nearest Neighbor...")
-    results['Nearest Neighbor'] = evaluate_method('Nearest Neighbor', nearest_neighbor_selection, num_epochs=2000, seed_offset=seed_offset)
+    results['Nearest Neighbor'] = evaluate_method('Nearest Neighbor', nearest_neighbor_selection, num_epochs=1000, seed_offset=seed_offset)
     
     print("\nEvaluating DQN-based Selection...")
-    results['DQN'] = evaluate_method('DQN', rl_selection, trainer=trainer, num_epochs=2000, seed_offset=seed_offset)
-    
-    print("\nEvaluating PPO-based Selection...")
-    results['PPO'] = evaluate_method('PPO', ppo_selection, ppo_model=ppo_model, device=device, num_epochs=2000, seed_offset=seed_offset)
+    results['DQN'] = evaluate_method('DQN', rl_selection, trainer=trainer, num_epochs=1000, seed_offset=seed_offset)
     
     # Print summary statistics
     print("\n" + "="*70)
@@ -436,11 +417,46 @@ def main():
         print(f"{method_name}:")
         print(f"  Mean Localization Error: {metric_dict['mean_error']:.4f} m")
         print(f"  RMSE Localization Error: {metric_dict['rmse_error']:.4f} m")
+        print(f"  90th Percentile Error:   {metric_dict['error_90th']:.4f} m")
+        print(f"  95th Percentile Error:   {metric_dict['error_95th']:.4f} m")
         print(f"  Std Dev Error: {metric_dict['std_error']:.4f} m")
         print(f"  Mean Reward: {metric_dict['mean_reward']:.4f}")
         print(f"  Battery Deviation: {metric_dict['battery_deviation']:.6f}")
         print(f"  LoS Selection Ratio: {metric_dict['los_ratio']:.2%}")
+        
+        # Print selection frequency top beacons
+        freq = metric_dict['selection_frequency']
+        top_indices = np.argsort(freq)[::-1][:5]
+        print(f"  Top 5 Selected Beacons: {', '.join([f'B{i}({freq[i]:.1%})' for i in top_indices])}")
         print()
+    
+    # Save results to text file
+    eval_dir = Path(__file__).parent / 'results'
+    eval_dir.mkdir(exist_ok=True)
+    summary_file = eval_dir / 'evaluation_summary.txt'
+    
+    with open(summary_file, 'w') as f:
+        f.write("BEACON SELECTION EVALUATION SUMMARY\n")
+        f.write("="*50 + "\n\n")
+        
+        for method_name, metric_dict in results_dict.items():
+            f.write(f"{method_name}:\n")
+            f.write(f"  Mean Localization Error: {metric_dict['mean_error']:.4f} m\n")
+            f.write(f"  RMSE Localization Error: {metric_dict['rmse_error']:.4f} m\n")
+            f.write(f"  90th Percentile Error:   {metric_dict['error_90th']:.4f} m\n")
+            f.write(f"  95th Percentile Error:   {metric_dict['error_95th']:.4f} m\n")
+            f.write(f"  Std Dev Error:           {metric_dict['std_error']:.4f} m\n")
+            f.write(f"  Mean Reward:             {metric_dict['mean_reward']:.4f}\n")
+            f.write(f"  Battery Deviation:       {metric_dict['battery_deviation']:.6f}\n")
+            f.write(f"  LoS Selection Ratio:     {metric_dict['los_ratio']:.2%}\n")
+            
+            f.write("  Selection Frequency per Beacon:\n")
+            freq = metric_dict['selection_frequency']
+            for i, p in enumerate(freq):
+                f.write(f"    Beacon {i}: {p:.1%}\n")
+            f.write("\n")
+            
+    print(f"Summary saved to {summary_file}")
     
     # Generate plots
     print("Generating plots...")

@@ -1,24 +1,28 @@
 """Configuration parameters for UWB Node Selection experiments."""
 
 # Environment parameters
-GRID_SIZE = 10
-AGENT_INITIAL_X = GRID_SIZE / 2
-AGENT_INITIAL_Y = GRID_SIZE / 2
+GRID_WIDTH = 20
+GRID_HEIGHT = 20
+GRID_SIZE = max(GRID_WIDTH, GRID_HEIGHT)  # For backward compatibility
+AGENT_INITIAL_X = GRID_WIDTH / 2
+AGENT_INITIAL_Y = GRID_HEIGHT / 2
 AGENT_STEP_SIZE = 0.5
 
 # Beacon parameters
-NUM_BEACONS = 6
+NUM_BEACONS = 8
 BEACON_INITIAL_BATTERY = 100.0
 BATTERY_CONSUMPTION_MULTIPLIER = 3.0  # Increase battery consumption per packet
 
-# Beacon positions (relative to grid size)
+# Beacon positions (8 beacons distributed across 20x20 grid)
 BEACON_POSITIONS = [
-    (0.5, 0.5),              # Bottom-left corner
-    (5.0, 0.5),              # Bottom-middle
-    (GRID_SIZE - 0.5, 0.5),  # Bottom-right corner
-    (0.5, GRID_SIZE - 0.5),  # Top-left corner
-    (5.0, GRID_SIZE - 0.5),  # Top-middle
-    (GRID_SIZE - 0.5, GRID_SIZE - 0.5),  # Top-right corner
+    (2.0, 2.0),       # Bottom-left corner
+    (18.0, 2.0),      # Bottom-right corner
+    (2.0, 18.0),      # Top-left corner
+    (18.0, 18.0),     # Top-right corner
+    (2.0, 10.0),      # Left edge center
+    (18.0, 10.0),     # Right edge center
+    (10.0, 2.0),      # Bottom center
+    (10.0, 18.0),     # Top center
 ]
 
 # UWB Hardware Parameters (from research paper)
@@ -45,14 +49,14 @@ UWB_HARDWARE_PARAMS = {
 NUM_SELECTED_BEACONS = 3
 
 # Simulation parameters
-NUM_STEPS = 100
+NUM_STEPS = 150
 VISUALIZATION_FIGSIZE = (6, 6)
 STEP_PAUSE_TIME = 1  # seconds
 
 # Link model parameters
-LOS_PROBABILITY = 0.7
+LOS_PROBABILITY = 0.5
 
 # Reward function parameters
 EPSILON = 1e-6  # Small constant to avoid division by zero
-ER_TH = 2.0     # Localization error threshold
-MD_TH = 0.5     # Mean deviation threshold
+ER_TH = 2.5     # Localization error threshold
+MD_TH = 0.005     # Mean deviation threshold

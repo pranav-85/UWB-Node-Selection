@@ -12,7 +12,10 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from models.agent import Agent
 from models.beacon import Beacon, UWBHardwareParams
-from core.link_model import assign_beacon_links
+from core.link_model import (
+    generate_los_map, discretize_position,
+    save_los_map, load_los_map
+)
 from config import (
     GRID_SIZE, AGENT_INITIAL_X, AGENT_INITIAL_Y, AGENT_STEP_SIZE,
     NUM_BEACONS, BEACON_INITIAL_BATTERY, BEACON_POSITIONS, NUM_SELECTED_BEACONS,
@@ -21,22 +24,29 @@ from config import (
 
 
 class Environment:
-    """10x10 grid environment with beacons and a mobile agent."""
+    """Environment with beacons and a mobile agent."""
     
-    def __init__(self, grid_size: int = GRID_SIZE):
+    def __init__(self, grid_size: int = GRID_SIZE, los_map: dict = None, los_map_file: str = None):
         """
         Initialize the environment.
         
         Args:
             grid_size: Size of the grid (default from config)
+            los_map: Pre-computed LoS map dictionary. If None, tries to load from file.
+            los_map_file: Path to LoS map JSON file. If None, generates new LoS map.
         """
         self.grid_size = grid_size
         
         # Create 6 beacons at corners and near walls
         self.beacons = self._create_beacons()
         
-        # Create one mobile agent at center
-        self.agent = Agent(x=AGENT_INITIAL_X, y=AGENT_INITIAL_Y, step_size=AGENT_STEP_SIZE)
+        # Get beacon positions for agent collision avoidance
+        beacon_positions = [beacon.position.tolist() for beacon in self.beacons]
+        
+        # Create one mobile agent at center with grid constraints and beacon avoidance
+        self.agent = Agent(x=AGENT_INITIAL_X, y=AGENT_INITIAL_Y, step_size=AGENT_STEP_SIZE,
+                          grid_size=grid_size, beacon_positions=beacon_positions,
+                          collision_radius=0.5)
         
         # Network graph
         self.graph = None
@@ -46,6 +56,26 @@ class Environment:
         # Recording data
         self.recording = False
         self.records = []  # List to store timestep records
+        
+        # Load or generate LoS map
+        if los_map is not None:
+            # Use provided LoS map dictionary
+            self.los_map = los_map
+        elif los_map_file is not None:
+            # Load LoS map from file
+            self.los_map = load_los_map(los_map_file)
+        else:
+            # Generate new LoS map for all grid positions
+            self.los_map = generate_los_map(
+                grid_width=int(self.grid_size),
+                grid_height=int(self.grid_size),
+                num_beacons=NUM_BEACONS,
+                los_probability=LOS_PROBABILITY,
+                grid_resolution=AGENT_STEP_SIZE,
+            )
+        
+        # Assign links based on current agent position
+        self._update_links_from_map()
         
     def _create_beacons(self) -> List[Beacon]:
         """Create beacons at positions specified in config."""
@@ -77,9 +107,11 @@ class Environment:
         return beacons
     
     def step(self):
-        """Move agent and assign new links and consume energy from selected beacons."""
+        """Move agent and update links based on new position, then consume energy from selected beacons."""
         self.agent.step()
-        self._assign_links()
+        
+        # Update links based on new agent position
+        self._update_links_from_map()
         
         # Select random beacons for localization
         self.selected_beacon_indices = list(np.random.choice(len(self.beacons), size=NUM_SELECTED_BEACONS, replace=False))
@@ -92,9 +124,19 @@ class Environment:
         if self.recording:
             self._record_step()
     
-    def _assign_links(self):
-        """Assign LoS/NLoS links to each beacon."""
-        self.current_links = assign_beacon_links(len(self.beacons))
+    def _update_links_from_map(self):
+        """Update LoS/NLoS links based on current agent position using pre-computed LoS map."""
+        agent_x, agent_y = self.agent.get_position()
+        discretized_pos = discretize_position(agent_x, agent_y, grid_resolution=AGENT_STEP_SIZE)
+        
+        # Look up links from map, fallback to closest available position if exact position not in map
+        if discretized_pos in self.los_map:
+            self.current_links = self.los_map[discretized_pos]
+        else:
+            # Find closest position in map
+            closest_pos = min(self.los_map.keys(), 
+                            key=lambda p: (p[0] - discretized_pos[0])**2 + (p[1] - discretized_pos[1])**2)
+            self.current_links = self.los_map[closest_pos]
     
     def start_recording(self):
         """Start recording the simulation."""
@@ -259,10 +301,75 @@ class Environment:
         fig.tight_layout()
 
         return fig, ax
+    
+    def save_los_map(self, filename: str = None) -> str:
+        """
+        Save the pre-computed LoS map to a JSON file.
+        
+        Args:
+            filename: Path to save file (if None, uses timestamp)
+        
+        Returns:
+            Path to saved file
+        """
+        return save_los_map(self.los_map, filename)
+    
+    @classmethod
+    def load_from_los_map(cls, los_map_file: str, grid_size: int = GRID_SIZE):
+        """
+        Create an environment with a pre-computed LoS map from file.
+        
+        Args:
+            los_map_file: Path to LoS map JSON file
+            grid_size: Size of the grid
+        
+        Returns:
+            Environment instance with loaded LoS map
+        """
+        loaded_map = load_los_map(los_map_file)
+        return cls(grid_size=grid_size, los_map=loaded_map)
 
+    def reset_beacon_batteries(self):
+        """
+        Reset all beacon batteries to their initial level (100%).
+        Called at the start of each episode to ensure consistent battery levels.
+        """
+        for beacon in self.beacons:
+            beacon.battery.battery = BEACON_INITIAL_BATTERY
+    
+    def reset_agent_to_random_location(self):
+        """
+        Reset agent to a random location within the grid.
+        The environment (LoS map, beacons) remains unchanged.
+        Only the agent position changes for each episode.
+        """
+        # Generate random position within grid bounds, avoiding beacons
+        max_retries = 100
+        for _ in range(max_retries):
+            random_x = np.random.uniform(0, self.grid_size)
+            random_y = np.random.uniform(0, self.grid_size)
+            
+            # Check if this position is not too close to any beacon
+            valid_position = True
+            for beacon in self.beacons:
+                distance = np.sqrt((random_x - beacon.position[0])**2 + 
+                                 (random_y - beacon.position[1])**2)
+                if distance < 0.5:  # Collision radius
+                    valid_position = False
+                    break
+            
+            if valid_position:
+                break
+        
+        # Reset agent to random position
+        self.agent.reset(x=random_x, y=random_y)
+        self.selected_beacon_indices = []
+        
+        # Update links based on new agent position
+        self._update_links_from_map()
     
     def reset(self):
         """Reset the environment."""
         self.agent.reset(x=AGENT_INITIAL_X, y=AGENT_INITIAL_Y)
-        self.current_links = None
         self.selected_beacon_indices = []
+        self._update_links_from_map()  # Update links for initial position
