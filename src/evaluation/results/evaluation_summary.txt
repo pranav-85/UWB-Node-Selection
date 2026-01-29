@@ -8,6 +8,7 @@ Random:
   95th Percentile Error:   9.0162 m
   Std Dev Error:           2.4686 m
   Mean Reward:             -3.2437
+  Total Steps:             1000
   Battery Deviation:       0.004449
   LoS Selection Ratio:     49.95%
   Selection Frequency per Beacon:
@@ -27,6 +28,7 @@ Nearest Neighbor:
   95th Percentile Error:   1.2520 m
   Std Dev Error:           1.5546 m
   Mean Reward:             -1.2396
+  Total Steps:             1000
   Battery Deviation:       0.002461
   LoS Selection Ratio:     50.24%
   Selection Frequency per Beacon:
@@ -46,6 +48,7 @@ DQN:
   95th Percentile Error:   1.0630 m
   Std Dev Error:           0.3261 m
   Mean Reward:             -0.2054
+  Total Steps:             1000
   Battery Deviation:       0.003157
   LoS Selection Ratio:     50.42%
   Selection Frequency per Beacon:

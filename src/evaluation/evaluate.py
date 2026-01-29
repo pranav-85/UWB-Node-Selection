@@ -60,6 +60,7 @@ class EvaluationMetrics:
             'error_90th': np.percentile(self.localization_errors, 90),
             'error_95th': np.percentile(self.localization_errors, 95),
             'mean_reward': np.mean(self.rewards),
+            'total_steps': self.time_steps,
             'final_batteries': {i: self.battery_levels[i][-1] for i in range(NUM_BEACONS)},
             'battery_deviation': self._compute_battery_deviation(),
             'los_ratio': self.los_selections / (self.los_selections + self.nlos_selections) if (self.los_selections + self.nlos_selections) > 0 else 0,
@@ -176,6 +177,8 @@ def evaluate_method(method_name: str,
             if min_battery <= CRITICAL_BATTERY_THRESHOLD:
                 # Episode ends when system degrades (any beacon reaches critical level)
                 break
+            
+        metrics.time_steps += 1
         
         pbar.update(1)
     
@@ -421,6 +424,7 @@ def main():
         print(f"  95th Percentile Error:   {metric_dict['error_95th']:.4f} m")
         print(f"  Std Dev Error: {metric_dict['std_error']:.4f} m")
         print(f"  Mean Reward: {metric_dict['mean_reward']:.4f}")
+        print(f"  Total Steps: {metric_dict['total_steps']}")
         print(f"  Battery Deviation: {metric_dict['battery_deviation']:.6f}")
         print(f"  LoS Selection Ratio: {metric_dict['los_ratio']:.2%}")
         
@@ -447,6 +451,7 @@ def main():
             f.write(f"  95th Percentile Error:   {metric_dict['error_95th']:.4f} m\n")
             f.write(f"  Std Dev Error:           {metric_dict['std_error']:.4f} m\n")
             f.write(f"  Mean Reward:             {metric_dict['mean_reward']:.4f}\n")
+            f.write(f"  Total Steps:             {metric_dict['total_steps']}\n")
             f.write(f"  Battery Deviation:       {metric_dict['battery_deviation']:.6f}\n")
             f.write(f"  LoS Selection Ratio:     {metric_dict['los_ratio']:.2%}\n")
             
