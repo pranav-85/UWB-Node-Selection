@@ -296,7 +296,17 @@ class Environment:
         ax.set_title(title, fontsize=14, fontweight='bold')
         ax.set_xlabel('X coordinate')
         ax.set_ylabel('Y coordinate')
-        ax.legend(loc='upper left')
+        ax.legend(
+            loc='upper left',
+            bbox_to_anchor=(1.01, 1),
+            borderaxespad=0,
+            fontsize=7,
+            markerscale=0.7,
+            framealpha=0.7,
+            handlelength=1.5,
+            handletextpad=0.5,
+            borderpad=0.5
+        )
 
         fig.tight_layout()
 

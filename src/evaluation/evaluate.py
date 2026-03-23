@@ -13,8 +13,13 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from core.environment import Environment
 from reward.reward import compute_reward
 from rl.trainer_dqn import DQNTrainer
+from rl.trainer_lstm import LSTMTrainer
+from rl.trainer_enhanced_lstm import EnhancedDQNTrainer
+from rl.trainer_ppo import PPOTrainer
+from localization.gdop import compute_weighted_gdop
 from localization.trilateration import trilateration_2d, compute_noisy_distances, localization_error
-from config import NUM_BEACONS, NUM_SELECTED_BEACONS
+from localization.wls_kalman import WLSLocalizer
+from config import NUM_BEACONS, NUM_SELECTED_BEACONS, BEACON_POSITIONS, GRID_SIZE
 
 
 class EvaluationMetrics:
@@ -29,6 +34,8 @@ class EvaluationMetrics:
         self.nlos_selections = 0
         self.time_steps = 0
         self.beacon_counts = np.zeros(NUM_BEACONS)
+        self.gdop_values = []
+        self.trajectories = []  # List of (x, y) tuples for each step in each episode
     
     def add_error(self, error):
         self.localization_errors.append(error)
@@ -48,6 +55,10 @@ class EvaluationMetrics:
                 self.los_selections += 1
             else:
                 self.nlos_selections += 1
+
+    def add_trajectory(self, trajectory):
+        """Add a trajectory (list of positions) for an episode."""
+        self.trajectories.append(trajectory)
     
     def get_metrics(self):
         """Return computed metrics."""
@@ -68,6 +79,7 @@ class EvaluationMetrics:
             'localization_errors': self.localization_errors,
             'battery_levels': dict(self.battery_levels),
             'rewards': self.rewards,
+            'trajectories': self.trajectories,
         }
         return metrics
     
@@ -101,6 +113,59 @@ def rl_selection(env: Environment, trainer: DQNTrainer) -> list:
     action = trainer.select_action(state, training=False)
     return list(trainer.possible_actions[action])
 
+def lstm_selection(env: Environment, trainer: LSTMTrainer) -> list:
+    """RL-based beacon selection (LSTM)."""
+    state_seq = trainer.replay_buffer.get_state_sequence()
+    action = trainer.select_action(state_seq, training=False)
+    return list(trainer.possible_actions[action])
+
+def ppo_selection(env: Environment, trainer: PPOTrainer) -> list:
+    """RL-based beacon selection (PPO)."""
+    state = trainer.state_to_vector(env)
+    action, _, _ = trainer.select_action(state)
+    return list(trainer.possible_actions[action])
+
+def enhanced_lstm_selection(env: Environment, trainer: EnhancedDQNTrainer) -> list:
+    """RL-based beacon selection with Enhanced DQN (WLS + geometry features)."""
+    # Build enhanced state based on current environment
+    # Use last known selected beacons or default to first 3
+    selected = (0, 1, 2)
+    state = trainer.build_enhanced_state(env, list(selected))
+    action = trainer.select_action(state, training=False)
+    return list(trainer.possible_actions[action])
+
+def wgdop_selection(env: Environment) -> list:
+    """
+    Weighted GDOP-based beacon selection.
+    Real-time style (uses only current observable state).
+    """
+
+    agent_pos = np.array(env.agent.get_position())
+    best_score = float('inf')
+    best_combo = None
+
+    # Try all combinations of 3 beacons
+    for combo in combinations(range(NUM_BEACONS), NUM_SELECTED_BEACONS):
+
+        selected_positions = [
+            env.beacons[i].position for i in combo
+        ]
+
+        selected_los_flags = [
+            env.current_links[i] for i in combo
+        ]
+
+        score = compute_weighted_gdop(
+            agent_estimate=agent_pos,
+            beacon_positions=selected_positions,
+            los_flags=selected_los_flags
+        )
+
+        if score < best_score:
+            best_score = score
+            best_combo = combo
+
+    return list(best_combo)
 
 def evaluate_method(method_name: str, 
                    selection_func,
@@ -131,10 +196,31 @@ def evaluate_method(method_name: str,
         
         env = Environment()
         
+        # Initialize trainer state/history for this epoch
+        if trainer is not None:
+            if hasattr(trainer, 'build_enhanced_state'):
+                # For Enhanced LSTM trainer
+                initial_state = trainer.build_enhanced_state(env, [0, 1, 2])
+                trainer.replay_buffer.state_history.clear()
+                for _ in range(trainer.seq_length):
+                    trainer.replay_buffer.update_state_history(initial_state)
+                # Initialize localizer
+                if hasattr(trainer, 'localizer'):
+                    trainer.localizer.reset()
+            elif hasattr(trainer, 'seq_length') and hasattr(trainer.replay_buffer, 'state_history'):
+                # For regular LSTM trainer (check for seq_length attribute and state_history)
+                initial_state = trainer.state_to_vector(env)
+                trainer.replay_buffer.state_history.clear()
+                for _ in range(trainer.seq_length):
+                    trainer.replay_buffer.update_state_history(initial_state)
+        
         # Critical battery threshold: terminate when any beacon drops below this level
         CRITICAL_BATTERY_THRESHOLD = 10.0  # percent
         
-        for step in range(100):
+        current_trajectory = []
+        estimated_pos = np.mean([env.beacons[i].position for i in range(3)], axis=0)
+
+        for step in range(num_epochs):
             # Select beacons FIRST based on current state (before environment transitions)
             if trainer is not None:
                 selected_indices = selection_func(env, trainer)
@@ -149,6 +235,8 @@ def evaluate_method(method_name: str,
             
             # Compute metrics on the new state AFTER environment transition
             agent_pos = np.array(env.agent.get_position())
+            current_trajectory.append(tuple(agent_pos))
+
             selected_positions = np.array([env.beacons[i].position for i in selected_indices])
             los_flags = [env.current_links[i] for i in selected_indices]
             
@@ -171,6 +259,19 @@ def evaluate_method(method_name: str,
             metrics.add_battery_levels(env.get_battery_levels())
             metrics.add_selected_beacons(selected_indices, env.current_links)
             
+            # Update state history for next iteration (only for LSTM trainers)
+            if trainer is not None:
+                if hasattr(trainer, 'build_enhanced_state'):
+                    # Enhanced LSTM trainer: estimate position and build enhanced state
+                    next_state = trainer.build_enhanced_state(env, selected_indices, estimated_pos)
+                    trainer.replay_buffer.update_state_history(next_state)
+                    # For next iteration, update estimated position reference
+                    estimated_pos = agent_pos
+                elif hasattr(trainer, 'seq_length') and hasattr(trainer.replay_buffer, 'state_history'):
+                    # Regular LSTM trainer
+                    next_state = trainer.state_to_vector(env)
+                    trainer.replay_buffer.update_state_history(next_state)
+            
             # Early termination: if any beacon's battery drops below critical threshold
             battery_levels = env.get_battery_levels()
             min_battery = min(battery_levels)
@@ -179,6 +280,7 @@ def evaluate_method(method_name: str,
                 break
             
         metrics.time_steps += 1
+        metrics.add_trajectory(current_trajectory)
         
         pbar.update(1)
     
@@ -187,19 +289,37 @@ def evaluate_method(method_name: str,
 
 
 def plot_ecdf_comparison(results: dict):
-    """Plot ECDF of localization errors."""
+    """Plot improved ECDF of localization errors."""
     fig, ax = plt.subplots(figsize=(10, 6))
-    
-    for method_name, metrics in results.items():
-        errors = sorted(metrics['localization_errors'])
+
+    colors = plt.cm.tab10.colors  # clean professional color set
+
+    for idx, (method_name, metrics) in enumerate(results.items()):
+        errors = np.sort(metrics['localization_errors'])
         ecdf = np.arange(1, len(errors) + 1) / len(errors)
-        ax.plot(errors, ecdf, marker='o', linestyle='-', label=method_name, markersize=3, alpha=0.7)
-    
-    ax.set_xlabel('Localization Error (m)', fontsize=12)
-    ax.set_ylabel('Cumulative Probability', fontsize=12)
-    ax.set_title('ECDF of Localization Error Comparison', fontsize=14, fontweight='bold')
+
+        ax.plot(
+            errors,
+            ecdf,
+            linewidth=2.5,
+            label=method_name,
+            color=colors[idx % len(colors)]
+        )
+
+    # Add reference percentile lines
+    ax.axhline(0.9, linestyle='--', color='gray', alpha=0.6)
+    ax.axhline(0.95, linestyle='--', color='gray', alpha=0.6)
+
+    ax.set_xlabel('Localization Error (m)', fontsize=13)
+    ax.set_ylabel('Cumulative Probability', fontsize=13)
+    ax.set_title('ECDF of Localization Error Comparison', fontsize=15, fontweight='bold')
+
     ax.legend(fontsize=11)
-    ax.grid(True, alpha=0.3)
+    ax.grid(True, linestyle='--', alpha=0.4)
+
+    ax.set_xlim(left=0)
+    ax.set_ylim(0, 1)
+
     plt.tight_layout()
     return fig
 
@@ -372,6 +492,47 @@ def plot_los_ratio_comparison(results: dict):
     return fig
 
 
+    return fig
+
+
+def plot_agent_movement(results: dict):
+    """Plot agent movement trajectories."""
+    fig, ax = plt.subplots(figsize=(8, 8))
+    
+    # Plot beacons
+    for i, pos in enumerate(BEACON_POSITIONS):
+        ax.plot(pos[0], pos[1], 'bs', markersize=10, label='Beacon' if i == 0 else "")
+        ax.text(pos[0], pos[1] + 0.3, f'B{i}', ha='center', fontsize=12, fontweight='bold')
+        
+    # Plot trajectories from the 'Random' method (since agent movement is consistent across methods)
+    # We'll plot a few trajectories to show coverage
+    if 'Random' in results:
+        trajectories = results['Random']['trajectories']
+        # Plot last 5 trajectories
+        for traj in trajectories[-10:]:
+            traj = np.array(traj)
+            ax.plot(traj[:, 0], traj[:, 1], 'k-', alpha=0.3)
+            # Mark start and end
+            if len(traj) > 0:
+                ax.plot(traj[0, 0], traj[0, 1], 'go', markersize=6, label='Start' if traj is trajectories[-1] else "")
+                ax.plot(traj[-1, 0], traj[-1, 1], 'rx', markersize=6, label='End' if traj is trajectories[-1] else "")
+            
+    ax.set_title(f'Agent Movement Trajectories (Last 10 Episodes)', fontsize=14, fontweight='bold')
+    ax.set_xlabel('X Position (m)', fontsize=12)
+    ax.set_ylabel('Y Position (m)', fontsize=12)
+    ax.set_xlim(0, GRID_SIZE)
+    ax.set_ylim(0, GRID_SIZE)
+    ax.grid(True, alpha=0.3)
+    
+    # Legend - handle duplicate labels
+    handles, labels = plt.gca().get_legend_handles_labels()
+    by_label = dict(zip(labels, handles))
+    ax.legend(by_label.values(), by_label.keys(), loc='upper right')
+    
+    plt.tight_layout()
+    return fig
+
+
 def main():
     print("\n" + "="*70)
     print("BEACON SELECTION EVALUATION - 3 METHODS")
@@ -380,16 +541,63 @@ def main():
     # Load trained DQN model
     print("Loading trained DQN model...")
     state_size = NUM_BEACONS  # Only battery levels (observable), no ground-truth position or LoS flags
-    trainer = DQNTrainer(state_size=state_size)
+    dqn_trainer = DQNTrainer(state_size=state_size)
     dqn_model_path = Path(__file__).parent.parent / 'models' / 'dqn_model.pt'
     
     if dqn_model_path.exists():
-        trainer.load_model(str(dqn_model_path))
-        trainer.epsilon = 0.0  # No exploration during evaluation
+        dqn_trainer.load_model(str(dqn_model_path))
+        dqn_trainer.epsilon = 0.0  # No exploration during evaluation
         print(f"DQN Model loaded from {dqn_model_path}")
     else:
-        print(f"Warning: Model not found at {dqn_model_path}")
-        print("Using untrained model for evaluation")
+        print(f"Warning: DQN model not found at {dqn_model_path}")
+        print("Using untrained DQN model for evaluation")
+    
+    # Load trained LSTM model
+    print("Loading trained LSTM model...")
+    lstm_trainer = LSTMTrainer(
+        state_size=state_size,
+        lstm_hidden_size=64,
+        fc_hidden_size=64,
+        seq_length=10
+    )
+    lstm_model_path = Path(__file__).parent.parent / 'checkpoints' / 'lstm_model.pt'
+    
+    if lstm_model_path.exists():
+        lstm_trainer.load_model(str(lstm_model_path))
+        lstm_trainer.epsilon = 0.0  # No exploration during evaluation
+        print(f"LSTM Model loaded from {lstm_model_path}")
+    else:
+        print(f"Warning: LSTM model not found at {lstm_model_path}")
+        print("Using untrained LSTM model for evaluation")
+    
+    # Load trained Enhanced DQN model
+    print("Loading trained Enhanced DQN model...")
+    enhanced_dqn_trainer = EnhancedDQNTrainer(
+        hidden_size=128
+    )
+    enhanced_model_path = Path(__file__).parent.parent / 'checkpoints' / 'enhanced_dqn_model.pt'
+    
+    if enhanced_model_path.exists():
+        enhanced_dqn_trainer.load_model(str(enhanced_model_path))
+        enhanced_dqn_trainer.epsilon = 0.0  # No exploration during evaluation
+        print(f"Enhanced DQN Model loaded from {enhanced_model_path}")
+    else:
+        print(f"Warning: Enhanced DQN model not found at {enhanced_model_path}")
+        print("Using untrained Enhanced DQN model for evaluation")
+    
+    # Load trained PPO model
+    print("Loading trained PPO model...")
+    ppo_trainer = PPOTrainer(
+        state_size=NUM_BEACONS
+    )
+    ppo_model_path = Path(__file__).parent.parent / 'checkpoints' / 'ppo_model.pt'
+    
+    if ppo_model_path.exists():
+        ppo_trainer.load_model(str(ppo_model_path))
+        print(f"PPO Model loaded from {ppo_model_path}")
+    else:
+        print(f"Warning: PPO model not found at {ppo_model_path}")
+        print("Using untrained PPO model for evaluation")
     
     # Evaluate methods on same simulations (same seeds)
     results = {}
@@ -398,13 +606,25 @@ def main():
     seed_offset = 42  # Base seed for reproducibility
     
     print("Evaluating Random Node Selection...")
-    results['Random'] = evaluate_method('Random', random_selection, num_epochs=1000, seed_offset=seed_offset)
+    results['Random'] = evaluate_method('Random', random_selection, num_epochs=100, seed_offset=seed_offset)
     
+    print("Evaluating GDOP Node Selection...")
+    results['GDOP'] = evaluate_method('GDOP', wgdop_selection, num_epochs=100, seed_offset=seed_offset)
+
     print("\nEvaluating Nearest Neighbor...")
-    results['Nearest Neighbor'] = evaluate_method('Nearest Neighbor', nearest_neighbor_selection, num_epochs=1000, seed_offset=seed_offset)
+    results['Nearest Neighbor'] = evaluate_method('Nearest Neighbor', nearest_neighbor_selection, num_epochs=100, seed_offset=seed_offset)
     
     print("\nEvaluating DQN-based Selection...")
-    results['DQN'] = evaluate_method('DQN', rl_selection, trainer=trainer, num_epochs=1000, seed_offset=seed_offset)
+    results['DQLEL'] = evaluate_method('DQN', rl_selection, trainer=dqn_trainer, num_epochs=100, seed_offset=seed_offset)
+    
+    # print("\nEvaluating LSTM-based Selection...")
+    # results['LSTM'] = evaluate_method('LSTM', lstm_selection, trainer=lstm_trainer, num_epochs=100, seed_offset=seed_offset)
+    
+    # print("\nEvaluating PPO-based Selection...")
+    # results['PPO'] = evaluate_method('PPO', ppo_selection, trainer=ppo_trainer, num_epochs=100, seed_offset=seed_offset)
+    
+    # print("\nEvaluating Enhanced DQN-based Selection (WLS + Geometry)...")
+    # results['Enhanced DQN'] = evaluate_method('Enhanced DQN', enhanced_lstm_selection, trainer=enhanced_dqn_trainer, num_epochs=100, seed_offset=seed_offset)
     
     # Print summary statistics
     print("\n" + "="*70)
@@ -474,6 +694,7 @@ def main():
         'lifetime': plot_infrastructure_lifetime(results_dict),
         'reward': plot_cumulative_reward(results_dict),
         'los_ratio': plot_los_ratio_comparison(results_dict),
+        'movement': plot_agent_movement(results_dict),
     }
     
     # Save plots
@@ -488,6 +709,7 @@ def main():
         'lifetime': 'infrastructure_lifetime.png',
         'reward': 'cumulative_reward.png',
         'los_ratio': 'los_ratio_comparison.png',
+        'movement': 'agent_movement.png',
     }
     
     for key, fig in figs.items():

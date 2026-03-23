@@ -1,28 +1,26 @@
 """Configuration parameters for UWB Node Selection experiments."""
 
 # Environment parameters
-GRID_WIDTH = 20
-GRID_HEIGHT = 20
+GRID_WIDTH = 10
+GRID_HEIGHT = 10
 GRID_SIZE = max(GRID_WIDTH, GRID_HEIGHT)  # For backward compatibility
 AGENT_INITIAL_X = GRID_WIDTH / 2
 AGENT_INITIAL_Y = GRID_HEIGHT / 2
 AGENT_STEP_SIZE = 0.5
 
 # Beacon parameters
-NUM_BEACONS = 8
+NUM_BEACONS = 6
 BEACON_INITIAL_BATTERY = 100.0
 BATTERY_CONSUMPTION_MULTIPLIER = 3.0  # Increase battery consumption per packet
 
-# Beacon positions (8 beacons distributed across 20x20 grid)
+# Beacon positions (4 beacons distributed across 10x10 grid)
 BEACON_POSITIONS = [
-    (2.0, 2.0),       # Bottom-left corner
-    (18.0, 2.0),      # Bottom-right corner
-    (2.0, 18.0),      # Top-left corner
-    (18.0, 18.0),     # Top-right corner
-    (2.0, 10.0),      # Left edge center
-    (18.0, 10.0),     # Right edge center
-    (10.0, 2.0),      # Bottom center
-    (10.0, 18.0),     # Top center
+    (1.0, 1.0),       # Bottom-left corner
+    (9.0, 9.0),      # Bottom-right corner
+    (1.0, 9.0),      # Top-left corner
+    (9.0, 1.0),      # Top-right corner
+    (5.0, 1.0),      # Middle-bottom
+    (5.0, 9.0),      # Middle-top
 ]
 
 # UWB Hardware Parameters (from research paper)

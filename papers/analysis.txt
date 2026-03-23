@@ -1,0 +1,10 @@
+DQLEL 
+Select optimized beacons based on location error and battery
+Uses DQN (CNN)
+TDoA
+
+
+Improving_Indoor_Localization_Using_Mobile_UWB_Sensor_and_Deep_Reinforcement_Learning
+1. Uses PPO for anchor selection (4 anchors)
+2. Trains a CNN estimator to estimate the position of the agent. (Uses Modified Saleh–Valenzuela (S-V) UWB Channel Model to generate waveform, which is used to predict the position)
+3. 

@@ -2,62 +2,74 @@ BEACON SELECTION EVALUATION SUMMARY
 ==================================================
 
 Random:
-  Mean Localization Error: 1.3622 m
-  RMSE Localization Error: 2.8195 m
-  90th Percentile Error:   2.0166 m
-  95th Percentile Error:   9.0162 m
-  Std Dev Error:           2.4686 m
-  Mean Reward:             -3.2437
-  Total Steps:             1000
-  Battery Deviation:       0.004449
-  LoS Selection Ratio:     49.95%
+  Mean Localization Error: 1.1309 m
+  RMSE Localization Error: 1.8767 m
+  90th Percentile Error:   2.4297 m
+  95th Percentile Error:   4.8407 m
+  Std Dev Error:           1.4977 m
+  Mean Reward:             -0.5469
+  Total Steps:             100
+  Battery Deviation:       0.004931
+  LoS Selection Ratio:     50.49%
   Selection Frequency per Beacon:
-    Beacon 0: 12.5%
-    Beacon 1: 12.5%
-    Beacon 2: 12.4%
-    Beacon 3: 12.5%
-    Beacon 4: 12.4%
-    Beacon 5: 12.6%
-    Beacon 6: 12.5%
-    Beacon 7: 12.5%
+    Beacon 0: 16.7%
+    Beacon 1: 16.7%
+    Beacon 2: 16.6%
+    Beacon 3: 16.8%
+    Beacon 4: 16.6%
+    Beacon 5: 16.6%
+
+GDOP:
+  Mean Localization Error: 1.0549 m
+  RMSE Localization Error: 1.8799 m
+  90th Percentile Error:   2.5874 m
+  95th Percentile Error:   5.4053 m
+  Std Dev Error:           1.5561 m
+  Mean Reward:             -0.5077
+  Total Steps:             100
+  Battery Deviation:       0.004239
+  LoS Selection Ratio:     59.20%
+  Selection Frequency per Beacon:
+    Beacon 0: 16.9%
+    Beacon 1: 18.5%
+    Beacon 2: 18.2%
+    Beacon 3: 16.8%
+    Beacon 4: 14.5%
+    Beacon 5: 15.1%
 
 Nearest Neighbor:
-  Mean Localization Error: 0.7192 m
-  RMSE Localization Error: 1.7129 m
-  90th Percentile Error:   1.0178 m
-  95th Percentile Error:   1.2520 m
-  Std Dev Error:           1.5546 m
-  Mean Reward:             -1.2396
-  Total Steps:             1000
-  Battery Deviation:       0.002461
-  LoS Selection Ratio:     50.24%
+  Mean Localization Error: 2.2436 m
+  RMSE Localization Error: 3.6821 m
+  90th Percentile Error:   7.7673 m
+  95th Percentile Error:   8.8346 m
+  Std Dev Error:           2.9197 m
+  Mean Reward:             -0.9824
+  Total Steps:             100
+  Battery Deviation:       0.002984
+  LoS Selection Ratio:     49.93%
   Selection Frequency per Beacon:
-    Beacon 0: 3.4%
-    Beacon 1: 3.7%
-    Beacon 2: 3.6%
-    Beacon 3: 3.6%
-    Beacon 4: 20.9%
-    Beacon 5: 21.8%
-    Beacon 6: 21.6%
-    Beacon 7: 21.5%
+    Beacon 0: 11.6%
+    Beacon 1: 14.2%
+    Beacon 2: 13.0%
+    Beacon 3: 13.8%
+    Beacon 4: 23.9%
+    Beacon 5: 23.5%
 
-DQN:
-  Mean Localization Error: 0.4979 m
-  RMSE Localization Error: 0.5952 m
-  90th Percentile Error:   0.8984 m
-  95th Percentile Error:   1.0630 m
-  Std Dev Error:           0.3261 m
-  Mean Reward:             -0.2054
-  Total Steps:             1000
-  Battery Deviation:       0.003157
-  LoS Selection Ratio:     50.42%
+DQLEL:
+  Mean Localization Error: 0.5531 m
+  RMSE Localization Error: 0.6536 m
+  90th Percentile Error:   1.0091 m
+  95th Percentile Error:   1.1737 m
+  Std Dev Error:           0.3483 m
+  Mean Reward:             -0.3071
+  Total Steps:             100
+  Battery Deviation:       0.003893
+  LoS Selection Ratio:     48.97%
   Selection Frequency per Beacon:
-    Beacon 0: 25.9%
-    Beacon 1: 9.2%
-    Beacon 2: 2.7%
-    Beacon 3: 4.3%
-    Beacon 4: 5.4%
-    Beacon 5: 20.2%
-    Beacon 6: 6.9%
-    Beacon 7: 25.4%
+    Beacon 0: 5.3%
+    Beacon 1: 30.0%
+    Beacon 2: 30.1%
+    Beacon 3: 25.1%
+    Beacon 4: 6.2%
+    Beacon 5: 3.3%
 

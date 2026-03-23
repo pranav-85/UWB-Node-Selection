@@ -124,7 +124,7 @@ def uwb_trilateration_epoch(
         "true_position": target_pos,
         "estimated_position": est_pos,
         "distances": distances,
-        "localization_error": error
+        "localization_error": np.sqrt(error)
     }
 
 
