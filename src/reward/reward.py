@@ -1,3 +1,9 @@
+"""
+Reward function for UWB node selection RL training.
+
+Supports both simple noise and CIR-based distance measurement models.
+"""
+
 import sys
 from pathlib import Path
 import numpy as np
@@ -12,6 +18,32 @@ from config import EPSILON, NUM_BEACONS, ER_TH, MD_TH
 ALPHA = 1.0   # Weight for localization error term
 BETA = 0.3    # Weight for battery deviation term
 
+# Global flag to use CIR model (can be set via set_cir_mode())
+_USE_CIR_MODEL = False
+_CIR_CONFIG = None
+
+
+def set_cir_mode(use_cir: bool, cir_config = None):
+    """
+    Enable or disable CIR-based distance measurement for reward computation.
+    
+    Args:
+        use_cir: If True, use CIR model; if False, use simple noise
+        cir_config: Optional CIRConfig object (uses defaults if None)
+    """
+    global _USE_CIR_MODEL, _CIR_CONFIG
+    _USE_CIR_MODEL = use_cir
+    _CIR_CONFIG = cir_config
+    if use_cir:
+        print(f"✓ CIR-based distance model enabled")
+    else:
+        print(f"✓ Simple noise distance model enabled")
+
+
+def get_cir_mode() -> bool:
+    """Get current CIR mode setting."""
+    return _USE_CIR_MODEL
+
 
 def compute_reward(agent_pos, beacon_positions, los_flags, battery_levels):
     """
@@ -23,6 +55,9 @@ def compute_reward(agent_pos, beacon_positions, los_flags, battery_levels):
     1. Localization error (ER_t) with weight α
     2. Battery mean deviation (MD_t) with weight β
     
+    Supports both simple noise and CIR-based distance measurement models.
+    Use set_cir_mode() to switch between models.
+    
     Args:
         agent_pos: (x, y) ground-truth position of the agent
         beacon_positions: List of (x, y) positions of selected beacons
@@ -33,11 +68,13 @@ def compute_reward(agent_pos, beacon_positions, los_flags, battery_levels):
         reward: Scalar reward value (typically in range [-2, 0] with default weights)
     """
 
-    # Compute localization error
+    # Compute localization error using selected distance model
     result = uwb_trilateration_epoch(
         target_pos=agent_pos,
         beacon_positions=beacon_positions,
-        los_flags=los_flags
+        los_flags=los_flags,
+        use_cir=_USE_CIR_MODEL,
+        cir_config=_CIR_CONFIG
     )
 
     ER_t = result["localization_error"]  # localization error

@@ -1,0 +1,16 @@
+{
+  "timestamp": "2026-04-05T20:01:31.802733",
+  "training": {
+    "num_episodes": 400,
+    "num_train_envs": 20,
+    "final_avg_reward": -207.4229870714449,
+    "total_transitions": 10000
+  },
+  "evaluation": {
+    "num_test_envs": 10,
+    "mean_reward": -3157.490840297165,
+    "std_reward": 4896.8361318942125,
+    "mean_length": 231.4
+  },
+  "model_path": "checkpoints\\domain_generalization\\dqn_domain_generalization_20260405_200131.pt"
+}

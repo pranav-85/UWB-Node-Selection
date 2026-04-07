@@ -3,7 +3,7 @@ Trilateration-based localization simulation with noisy UWB distance measurements
 
 Implements:
 - True distance computation
-- LoS / NLoS noise model
+- LoS / NLoS noise model (simple and CIR-based)
 - Linearized least-squares trilateration (2D)
 - Localization error computation
 
@@ -12,6 +12,11 @@ Assumptions:
 - Target ground truth is known to simulator
 - Exactly three beacons are used per localization
 - Noise is added only to distance measurements
+
+CIR Integration:
+- Supports both simple noise model and CIR-based model
+- Use compute_distances() with use_cir=True for CIR model
+- Use compute_distances() with use_cir=False for simple noise
 """
 
 import numpy as np
@@ -58,6 +63,48 @@ def compute_noisy_distances(
     return distances
 
 
+def compute_distances(
+    target_pos,
+    beacon_positions,
+    los_flags,
+    use_cir: bool = False,
+    cir_config = None
+):
+    """
+    Compute distances from target to selected beacons.
+    
+    Supports both simple noise model and CIR-based model.
+    
+    Args:
+        target_pos: (x_t, y_t) target position
+        beacon_positions: [(x_i, y_i), ...] beacon positions  
+        los_flags: [True/False, ...] LoS/NLoS flags
+        use_cir: If True, use CIR model; if False, use simple noise
+        cir_config: CIRConfig object for CIR model (uses defaults if None)
+    
+    Returns:
+        List of estimated distances
+    """
+    if use_cir:
+        # Use CIR-based distances
+        try:
+            from localization.cir_model import compute_cir_distances, FAST_CIR_CONFIG
+            if cir_config is None:
+                cir_config = FAST_CIR_CONFIG
+            distances = compute_cir_distances(
+                target_pos, beacon_positions, los_flags, config=cir_config
+            )
+        except ImportError as e:
+            # Fallback to simple noise if CIR module not available
+            print(f"Warning: CIR module not imported ({e}). Falling back to simple noise model.")
+            distances = compute_noisy_distances(target_pos, beacon_positions, los_flags)
+    else:
+        # Use simple noise model
+        distances = compute_noisy_distances(target_pos, beacon_positions, los_flags)
+    
+    return distances
+
+
 
 def trilateration_2d(beacon_positions, distances):
     """
@@ -99,15 +146,29 @@ def localization_error(true_pos, est_pos):
 def uwb_trilateration_epoch(
     target_pos,
     beacon_positions,
-    los_flags
+    los_flags,
+    use_cir: bool = False,
+    cir_config = None
 ):
     """
     Complete localization pipeline for one time step.
+    
+    Args:
+        target_pos: Ground truth target position (x, y)
+        beacon_positions: List of beacon positions
+        los_flags: List of LoS/NLoS flags
+        use_cir: If True, use CIR model; if False, use simple noise
+        cir_config: CIRConfig object for CIR model
+    
+    Returns:
+        Dictionary with localization results
     """
-    distances = compute_noisy_distances(
+    distances = compute_distances(
         target_pos,
         beacon_positions,
-        los_flags
+        los_flags,
+        use_cir=use_cir,
+        cir_config=cir_config
     )
 
     est_pos = trilateration_2d(

@@ -2,6 +2,7 @@ import sys
 from pathlib import Path
 import numpy as np
 import torch
+import random
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 from collections import defaultdict
@@ -533,10 +534,25 @@ def plot_agent_movement(results: dict):
     return fig
 
 
+def domain_gen_selection(env: Environment, trainer: DQNTrainer) -> list:
+    """RL-based beacon selection using domain-generalized DQN model."""
+    state = trainer.state_to_vector(env)
+    action = trainer.select_action(state, training=False)
+    return list(trainer.possible_actions[action])
+
+
 def main():
     print("\n" + "="*70)
     print("BEACON SELECTION EVALUATION - 3 METHODS")
     print("="*70 + "\n")
+    
+    # =========================================================================
+    # ENABLE CIR-BASED DISTANCE MEASUREMENTS FOR EVALUATION
+    # =========================================================================
+    from rl.cir_training_config import setup_cir_training, FAST_TRAINING
+    setup_cir_training(FAST_TRAINING)
+    print()
+    # =========================================================================
     
     # Load trained DQN model
     print("Loading trained DQN model...")
@@ -615,7 +631,29 @@ def main():
     results['Nearest Neighbor'] = evaluate_method('Nearest Neighbor', nearest_neighbor_selection, num_epochs=100, seed_offset=seed_offset)
     
     print("\nEvaluating DQN-based Selection...")
-    results['DQLEL'] = evaluate_method('DQN', rl_selection, trainer=dqn_trainer, num_epochs=100, seed_offset=seed_offset)
+    results['DQN'] = evaluate_method('DQN', rl_selection, trainer=dqn_trainer, num_epochs=100, seed_offset=seed_offset)
+    
+    # Load and evaluate domain-generalized model if available
+    print("\nChecking for domain-generalized model...")
+    checkpoint_dir = Path(__file__).parent.parent.parent / 'checkpoints' / 'domain_generalization'
+    
+    if checkpoint_dir.exists():
+        model_files = sorted(checkpoint_dir.glob('dqn_domain_generalization_*.pt'), reverse=True)
+        if model_files:
+            model_path = model_files[0]
+            print(f"Loading domain-generalized DQN model from {model_path}...")
+            domain_gen_trainer = DQNTrainer(state_size=state_size)
+            domain_gen_trainer.load_model(str(model_path))
+            domain_gen_trainer.epsilon = 0.0
+            
+            print("Evaluating Domain-Generalized DQN Selection (benchmark evaluation)...")
+            results['Domain Gen DQN'] = evaluate_method('Domain Gen DQN', domain_gen_selection, 
+                                                       trainer=domain_gen_trainer, num_epochs=100, 
+                                                       seed_offset=seed_offset)
+        else:
+            print("No domain generalization models found in checkpoint directory")
+    else:
+        print("Domain-generalized model checkpoint directory not found")
     
     # print("\nEvaluating LSTM-based Selection...")
     # results['LSTM'] = evaluate_method('LSTM', lstm_selection, trainer=lstm_trainer, num_epochs=100, seed_offset=seed_offset)
@@ -634,24 +672,74 @@ def main():
     # Convert EvaluationMetrics objects to dictionaries
     results_dict = {}
     for method_name, metrics in results.items():
-        results_dict[method_name] = metrics.get_metrics()
+        if isinstance(metrics, EvaluationMetrics):
+            results_dict[method_name] = metrics.get_metrics()
+        else:
+            # For domain gen metrics (if already a dict)
+            results_dict[method_name] = metrics
     
     for method_name, metric_dict in results_dict.items():
         print(f"{method_name}:")
-        print(f"  Mean Localization Error: {metric_dict['mean_error']:.4f} m")
-        print(f"  RMSE Localization Error: {metric_dict['rmse_error']:.4f} m")
-        print(f"  90th Percentile Error:   {metric_dict['error_90th']:.4f} m")
-        print(f"  95th Percentile Error:   {metric_dict['error_95th']:.4f} m")
-        print(f"  Std Dev Error: {metric_dict['std_error']:.4f} m")
-        print(f"  Mean Reward: {metric_dict['mean_reward']:.4f}")
-        print(f"  Total Steps: {metric_dict['total_steps']}")
-        print(f"  Battery Deviation: {metric_dict['battery_deviation']:.6f}")
-        print(f"  LoS Selection Ratio: {metric_dict['los_ratio']:.2%}")
+        if 'mean_error' in metric_dict:
+            print(f"  Mean Localization Error: {metric_dict['mean_error']:.4f} m")
+        if 'rmse_error' in metric_dict:
+            print(f"  RMSE Localization Error: {metric_dict['rmse_error']:.4f} m")
+        if 'error_90th' in metric_dict:
+            print(f"  90th Percentile Error:   {metric_dict['error_90th']:.4f} m")
+        if 'error_95th' in metric_dict:
+            print(f"  95th Percentile Error:   {metric_dict['error_95th']:.4f} m")
+        if 'std_error' in metric_dict:
+            print(f"  Std Dev Error: {metric_dict['std_error']:.4f} m")
+        if 'mean_reward' in metric_dict:
+            print(f"  Mean Reward: {metric_dict['mean_reward']:.4f}")
+        if 'total_steps' in metric_dict:
+            print(f"  Total Steps: {metric_dict['total_steps']}")
+        if 'battery_deviation' in metric_dict:
+            print(f"  Battery Deviation: {metric_dict['battery_deviation']:.6f}")
+        if 'los_ratio' in metric_dict:
+            print(f"  LoS Selection Ratio: {metric_dict['los_ratio']:.2%}")
         
-        # Print selection frequency top beacons
-        freq = metric_dict['selection_frequency']
-        top_indices = np.argsort(freq)[::-1][:5]
-        print(f"  Top 5 Selected Beacons: {', '.join([f'B{i}({freq[i]:.1%})' for i in top_indices])}")
+        # Print selection frequency top beacons (if available)
+        if 'selection_frequency' in metric_dict:
+            freq = metric_dict['selection_frequency']
+            top_indices = np.argsort(freq)[::-1][:5]
+            print(f"  Top 5 Selected Beacons: {', '.join([f'B{i}({freq[i]:.1%})' for i in top_indices])}")
+        
+        # Print generalization metrics (if available)
+        if 'errors_by_beacon_count' in metric_dict:
+            print(f"  Errors by Beacon Count:")
+            for bc, err_stats in sorted(metric_dict['errors_by_beacon_count'].items()):
+                print(f"    {bc} beacons: {err_stats['mean']:.4f} ± {err_stats['std']:.4f} m")
+            print(f"  Errors by LoS Probability:")
+            for los_p, err_stats in sorted(metric_dict['errors_by_los_prob'].items()):
+                print(f"    LoS={los_p}: {err_stats['mean']:.4f} ± {err_stats['std']:.4f} m")
+        
+        print()
+    
+    # Show domain generalization comparison if available
+    if 'Domain Gen DQN' in results_dict and 'DQN' in results_dict:
+        print("="*70)
+        print("DOMAIN GENERALIZATION IMPROVEMENT ANALYSIS")
+        print("="*70 + "\n")
+        
+        dqn_metrics = results_dict['DQN']
+        dgdqn_metrics = results_dict['Domain Gen DQN']
+        
+        error_improvement = (dqn_metrics['mean_error'] - dgdqn_metrics['mean_error']) / dqn_metrics['mean_error'] * 100
+        reward_improvement = (dgdqn_metrics['mean_reward'] - dqn_metrics['mean_reward']) / abs(dqn_metrics['mean_reward']) * 100 if dqn_metrics['mean_reward'] != 0 else 0
+        
+        print(f"DQN vs Domain Gen DQN (on same 100-epoch benchmark):")
+        print(f"\n  Localization Error:")
+        print(f"    Standard DQN:     {dqn_metrics['mean_error']:.4f} m ± {dqn_metrics['std_error']:.4f} m")
+        print(f"    Domain Gen DQN:   {dgdqn_metrics['mean_error']:.4f} m ± {dgdqn_metrics['std_error']:.4f} m")
+        print(f"    Improvement:      {error_improvement:+.2f}%")
+        print(f"\n  Mean Reward:")
+        print(f"    Standard DQN:     {dqn_metrics['mean_reward']:.4f}")
+        print(f"    Domain Gen DQN:   {dgdqn_metrics['mean_reward']:.4f}")
+        print(f"    Improvement:      {reward_improvement:+.2f}%")
+        print(f"\n  90th Percentile Error:")
+        print(f"    Standard DQN:     {dqn_metrics['error_90th']:.4f} m")
+        print(f"    Domain Gen DQN:   {dgdqn_metrics['error_90th']:.4f} m")
         print()
     
     # Save results to text file
@@ -665,22 +753,69 @@ def main():
         
         for method_name, metric_dict in results_dict.items():
             f.write(f"{method_name}:\n")
-            f.write(f"  Mean Localization Error: {metric_dict['mean_error']:.4f} m\n")
-            f.write(f"  RMSE Localization Error: {metric_dict['rmse_error']:.4f} m\n")
-            f.write(f"  90th Percentile Error:   {metric_dict['error_90th']:.4f} m\n")
-            f.write(f"  95th Percentile Error:   {metric_dict['error_95th']:.4f} m\n")
-            f.write(f"  Std Dev Error:           {metric_dict['std_error']:.4f} m\n")
-            f.write(f"  Mean Reward:             {metric_dict['mean_reward']:.4f}\n")
-            f.write(f"  Total Steps:             {metric_dict['total_steps']}\n")
-            f.write(f"  Battery Deviation:       {metric_dict['battery_deviation']:.6f}\n")
-            f.write(f"  LoS Selection Ratio:     {metric_dict['los_ratio']:.2%}\n")
+            if 'mean_error' in metric_dict:
+                f.write(f"  Mean Localization Error: {metric_dict['mean_error']:.4f} m\n")
+            if 'rmse_error' in metric_dict:
+                f.write(f"  RMSE Localization Error: {metric_dict['rmse_error']:.4f} m\n")
+            if 'error_90th' in metric_dict:
+                f.write(f"  90th Percentile Error:   {metric_dict['error_90th']:.4f} m\n")
+            if 'error_95th' in metric_dict:
+                f.write(f"  95th Percentile Error:   {metric_dict['error_95th']:.4f} m\n")
+            if 'std_error' in metric_dict:
+                f.write(f"  Std Dev Error:           {metric_dict['std_error']:.4f} m\n")
+            if 'mean_reward' in metric_dict:
+                f.write(f"  Mean Reward:             {metric_dict['mean_reward']:.4f}\n")
+            if 'total_steps' in metric_dict:
+                f.write(f"  Total Steps:             {metric_dict['total_steps']}\n")
+            if 'battery_deviation' in metric_dict:
+                f.write(f"  Battery Deviation:       {metric_dict['battery_deviation']:.6f}\n")
+            if 'los_ratio' in metric_dict:
+                f.write(f"  LoS Selection Ratio:     {metric_dict['los_ratio']:.2%}\n")
             
-            f.write("  Selection Frequency per Beacon:\n")
-            freq = metric_dict['selection_frequency']
-            for i, p in enumerate(freq):
-                f.write(f"    Beacon {i}: {p:.1%}\n")
+            if 'selection_frequency' in metric_dict:
+                f.write("  Selection Frequency per Beacon:\n")
+                freq = metric_dict['selection_frequency']
+                for i, p in enumerate(freq):
+                    f.write(f"    Beacon {i}: {p:.1%}\n")
+            
+            if 'errors_by_beacon_count' in metric_dict:
+                f.write("  Performance by Beacon Count:\n")
+                for bc, err_stats in sorted(metric_dict['errors_by_beacon_count'].items()):
+                    f.write(f"    {bc} beacons: {err_stats['mean']:.4f} ± {err_stats['std']:.4f} m\n")
+                
+                f.write("  Performance by LoS Probability:\n")
+                for los_p, err_stats in sorted(metric_dict['errors_by_los_prob'].items()):
+                    f.write(f"    LoS={los_p}: {err_stats['mean']:.4f} ± {err_stats['std']:.4f} m\n")
+            
             f.write("\n")
-            
+
+            # Add domain generalization comparison to file
+            if 'Domain Gen DQN' in results_dict and 'DQN' in results_dict:
+                f.write("\n" + "="*50 + "\n")
+                f.write("DOMAIN GENERALIZATION COMPARISON\n")
+                f.write("="*50 + "\n\n")
+                
+                dqn_metrics = results_dict['DQN']
+                dgdqn_metrics = results_dict['Domain Gen DQN']
+                
+                error_improvement = (dqn_metrics['mean_error'] - dgdqn_metrics['mean_error']) / dqn_metrics['mean_error'] * 100
+                reward_improvement = (dgdqn_metrics['mean_reward'] - dqn_metrics['mean_reward']) / abs(dqn_metrics['mean_reward']) * 100 if dqn_metrics['mean_reward'] != 0 else 0
+                
+                f.write("DQN vs Domain Gen DQN (on same 100-epoch benchmark):\n\n")
+                f.write("Localization Error:\n")
+                f.write(f"  Standard DQN:     {dqn_metrics['mean_error']:.4f} m ± {dqn_metrics['std_error']:.4f} m\n")
+                f.write(f"  Domain Gen DQN:   {dgdqn_metrics['mean_error']:.4f} m ± {dgdqn_metrics['std_error']:.4f} m\n")
+                f.write(f"  Improvement:      {error_improvement:+.2f}%\n\n")
+                
+                f.write("Mean Reward:\n")
+                f.write(f"  Standard DQN:     {dqn_metrics['mean_reward']:.4f}\n")
+                f.write(f"  Domain Gen DQN:   {dgdqn_metrics['mean_reward']:.4f}\n")
+                f.write(f"  Improvement:      {reward_improvement:+.2f}%\n\n")
+                
+                f.write("90th Percentile Error:\n")
+                f.write(f"  Standard DQN:     {dqn_metrics['error_90th']:.4f} m\n")
+                f.write(f"  Domain Gen DQN:   {dgdqn_metrics['error_90th']:.4f} m\n")
+
     print(f"Summary saved to {summary_file}")
     
     # Generate plots

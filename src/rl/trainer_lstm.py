@@ -511,6 +511,13 @@ class LSTMTrainer:
 
 
 if __name__ == '__main__':
+    # =========================================================================
+    # ENABLE CIR-BASED DISTANCE MEASUREMENTS FOR TRAINING
+    # =========================================================================
+    from cir_training_config import setup_cir_training, FAST_TRAINING
+    setup_cir_training(FAST_TRAINING)
+    # =========================================================================
+    
     # State size: battery levels (observable) = 6 dimensions
     state_size = NUM_BEACONS
     

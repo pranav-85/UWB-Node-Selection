@@ -512,6 +512,13 @@ class PPOTrainer:
 
 
 if __name__ == '__main__':
+    # =========================================================================
+    # ENABLE CIR-BASED DISTANCE MEASUREMENTS FOR TRAINING
+    # =========================================================================
+    from cir_training_config import setup_cir_training, FAST_TRAINING
+    setup_cir_training(FAST_TRAINING)
+    # =========================================================================
+    
     # State size: only battery levels (observable) = 6 dimensions
     # NOT included: agent position (unobservable), LoS flags (unobservable)
     state_size = NUM_BEACONS

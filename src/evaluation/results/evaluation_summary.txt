@@ -2,74 +2,192 @@ BEACON SELECTION EVALUATION SUMMARY
 ==================================================
 
 Random:
-  Mean Localization Error: 1.1309 m
-  RMSE Localization Error: 1.8767 m
-  90th Percentile Error:   2.4297 m
-  95th Percentile Error:   4.8407 m
-  Std Dev Error:           1.4977 m
-  Mean Reward:             -0.5469
+  Mean Localization Error: 1.1435 m
+  RMSE Localization Error: 1.9020 m
+  90th Percentile Error:   2.4204 m
+  95th Percentile Error:   4.9373 m
+  Std Dev Error:           1.5199 m
+  Mean Reward:             -2.3097
   Total Steps:             100
-  Battery Deviation:       0.004931
-  LoS Selection Ratio:     50.49%
+  Battery Deviation:       0.003330
+  LoS Selection Ratio:     50.07%
   Selection Frequency per Beacon:
-    Beacon 0: 16.7%
-    Beacon 1: 16.7%
-    Beacon 2: 16.6%
-    Beacon 3: 16.8%
-    Beacon 4: 16.6%
-    Beacon 5: 16.6%
+    Beacon 0: 16.6%
+    Beacon 1: 16.8%
+    Beacon 2: 16.7%
+    Beacon 3: 16.6%
+    Beacon 4: 16.3%
+    Beacon 5: 17.0%
 
+
+==================================================
+DOMAIN GENERALIZATION COMPARISON
+==================================================
+
+DQN vs Domain Gen DQN (on same 100-epoch benchmark):
+
+Localization Error:
+  Standard DQN:     0.7681 m ± 0.5563 m
+  Domain Gen DQN:   1.5264 m ± 2.0257 m
+  Improvement:      -98.73%
+
+Mean Reward:
+  Standard DQN:     -2.4644
+  Domain Gen DQN:   -2.4083
+  Improvement:      +2.28%
+
+90th Percentile Error:
+  Standard DQN:     1.4991 m
+  Domain Gen DQN:   5.1331 m
 GDOP:
-  Mean Localization Error: 1.0549 m
-  RMSE Localization Error: 1.8799 m
-  90th Percentile Error:   2.5874 m
-  95th Percentile Error:   5.4053 m
-  Std Dev Error:           1.5561 m
-  Mean Reward:             -0.5077
+  Mean Localization Error: 1.0254 m
+  RMSE Localization Error: 1.7783 m
+  90th Percentile Error:   2.7000 m
+  95th Percentile Error:   4.9413 m
+  Std Dev Error:           1.4529 m
+  Mean Reward:             -1.9009
   Total Steps:             100
-  Battery Deviation:       0.004239
-  LoS Selection Ratio:     59.20%
+  Battery Deviation:       0.002249
+  LoS Selection Ratio:     58.51%
   Selection Frequency per Beacon:
-    Beacon 0: 16.9%
-    Beacon 1: 18.5%
-    Beacon 2: 18.2%
-    Beacon 3: 16.8%
-    Beacon 4: 14.5%
-    Beacon 5: 15.1%
+    Beacon 0: 18.1%
+    Beacon 1: 17.7%
+    Beacon 2: 17.5%
+    Beacon 3: 18.1%
+    Beacon 4: 14.3%
+    Beacon 5: 14.4%
 
+
+==================================================
+DOMAIN GENERALIZATION COMPARISON
+==================================================
+
+DQN vs Domain Gen DQN (on same 100-epoch benchmark):
+
+Localization Error:
+  Standard DQN:     0.7681 m ± 0.5563 m
+  Domain Gen DQN:   1.5264 m ± 2.0257 m
+  Improvement:      -98.73%
+
+Mean Reward:
+  Standard DQN:     -2.4644
+  Domain Gen DQN:   -2.4083
+  Improvement:      +2.28%
+
+90th Percentile Error:
+  Standard DQN:     1.4991 m
+  Domain Gen DQN:   5.1331 m
 Nearest Neighbor:
-  Mean Localization Error: 2.2436 m
-  RMSE Localization Error: 3.6821 m
-  90th Percentile Error:   7.7673 m
-  95th Percentile Error:   8.8346 m
-  Std Dev Error:           2.9197 m
-  Mean Reward:             -0.9824
+  Mean Localization Error: 2.0391 m
+  RMSE Localization Error: 3.3756 m
+  90th Percentile Error:   7.3819 m
+  95th Percentile Error:   8.2453 m
+  Std Dev Error:           2.6901 m
+  Mean Reward:             -2.6825
   Total Steps:             100
-  Battery Deviation:       0.002984
-  LoS Selection Ratio:     49.93%
+  Battery Deviation:       0.006574
+  LoS Selection Ratio:     50.81%
   Selection Frequency per Beacon:
-    Beacon 0: 11.6%
-    Beacon 1: 14.2%
-    Beacon 2: 13.0%
-    Beacon 3: 13.8%
-    Beacon 4: 23.9%
-    Beacon 5: 23.5%
+    Beacon 0: 13.1%
+    Beacon 1: 12.7%
+    Beacon 2: 13.5%
+    Beacon 3: 13.1%
+    Beacon 4: 23.8%
+    Beacon 5: 23.7%
 
-DQLEL:
-  Mean Localization Error: 0.5531 m
-  RMSE Localization Error: 0.6536 m
-  90th Percentile Error:   1.0091 m
-  95th Percentile Error:   1.1737 m
-  Std Dev Error:           0.3483 m
-  Mean Reward:             -0.3071
+
+==================================================
+DOMAIN GENERALIZATION COMPARISON
+==================================================
+
+DQN vs Domain Gen DQN (on same 100-epoch benchmark):
+
+Localization Error:
+  Standard DQN:     0.7681 m ± 0.5563 m
+  Domain Gen DQN:   1.5264 m ± 2.0257 m
+  Improvement:      -98.73%
+
+Mean Reward:
+  Standard DQN:     -2.4644
+  Domain Gen DQN:   -2.4083
+  Improvement:      +2.28%
+
+90th Percentile Error:
+  Standard DQN:     1.4991 m
+  Domain Gen DQN:   5.1331 m
+DQN:
+  Mean Localization Error: 0.7681 m
+  RMSE Localization Error: 0.9484 m
+  90th Percentile Error:   1.4991 m
+  95th Percentile Error:   1.8400 m
+  Std Dev Error:           0.5563 m
+  Mean Reward:             -2.4644
   Total Steps:             100
-  Battery Deviation:       0.003893
-  LoS Selection Ratio:     48.97%
+  Battery Deviation:       0.002725
+  LoS Selection Ratio:     50.38%
   Selection Frequency per Beacon:
-    Beacon 0: 5.3%
-    Beacon 1: 30.0%
-    Beacon 2: 30.1%
-    Beacon 3: 25.1%
-    Beacon 4: 6.2%
-    Beacon 5: 3.3%
+    Beacon 0: 28.9%
+    Beacon 1: 1.9%
+    Beacon 2: 27.1%
+    Beacon 3: 6.7%
+    Beacon 4: 4.5%
+    Beacon 5: 30.8%
 
+
+==================================================
+DOMAIN GENERALIZATION COMPARISON
+==================================================
+
+DQN vs Domain Gen DQN (on same 100-epoch benchmark):
+
+Localization Error:
+  Standard DQN:     0.7681 m ± 0.5563 m
+  Domain Gen DQN:   1.5264 m ± 2.0257 m
+  Improvement:      -98.73%
+
+Mean Reward:
+  Standard DQN:     -2.4644
+  Domain Gen DQN:   -2.4083
+  Improvement:      +2.28%
+
+90th Percentile Error:
+  Standard DQN:     1.4991 m
+  Domain Gen DQN:   5.1331 m
+Domain Gen DQN:
+  Mean Localization Error: 1.5264 m
+  RMSE Localization Error: 2.5364 m
+  90th Percentile Error:   5.1331 m
+  95th Percentile Error:   6.5516 m
+  Std Dev Error:           2.0257 m
+  Mean Reward:             -2.4083
+  Total Steps:             100
+  Battery Deviation:       0.002811
+  LoS Selection Ratio:     50.46%
+  Selection Frequency per Beacon:
+    Beacon 0: 2.2%
+    Beacon 1: 23.5%
+    Beacon 2: 12.9%
+    Beacon 3: 8.6%
+    Beacon 4: 25.5%
+    Beacon 5: 27.4%
+
+
+==================================================
+DOMAIN GENERALIZATION COMPARISON
+==================================================
+
+DQN vs Domain Gen DQN (on same 100-epoch benchmark):
+
+Localization Error:
+  Standard DQN:     0.7681 m ± 0.5563 m
+  Domain Gen DQN:   1.5264 m ± 2.0257 m
+  Improvement:      -98.73%
+
+Mean Reward:
+  Standard DQN:     -2.4644
+  Domain Gen DQN:   -2.4083
+  Improvement:      +2.28%
+
+90th Percentile Error:
+  Standard DQN:     1.4991 m
+  Domain Gen DQN:   5.1331 m
