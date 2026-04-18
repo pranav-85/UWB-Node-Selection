@@ -105,7 +105,7 @@ def verify_los_map(los_map_path: str):
     print("=" * 70 + "\n")
     
     if not Path(los_map_path).exists():
-        print(f"✗ File not found: {los_map_path}")
+        print(f"[FAIL] File not found: {los_map_path}")
         return False
     
     try:
@@ -120,7 +120,7 @@ def verify_los_map(los_map_path: str):
         num_positions = len(los_map)
         num_beacons = len(list(los_map.values())[0]) if los_map else 0
         
-        print(f"✓ File valid: {los_map_path}")
+        print(f"[OK] File valid: {los_map_path}")
         print(f"  Grid positions: {num_positions}")
         print(f"  Beacons per position: {num_beacons}")
         
@@ -136,12 +136,12 @@ def verify_los_map(los_map_path: str):
         print(f"  Min LoS beacons: {min(all_los_counts)}")
         print(f"  Max LoS beacons: {max(all_los_counts)}")
         
-        print("\n✓ LoS map verification passed!")
+        print("\n[OK] LoS map verification passed!")
         print("=" * 70 + "\n")
         return True
         
     except Exception as e:
-        print(f"✗ Error verifying LoS map: {e}")
+        print(f"[FAIL] Error verifying LoS map: {e}")
         print("=" * 70 + "\n")
         return False
 

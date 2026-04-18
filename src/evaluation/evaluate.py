@@ -2,6 +2,7 @@ import sys
 from pathlib import Path
 import numpy as np
 import torch
+import torch.nn as nn
 import random
 import matplotlib.pyplot as plt
 from tqdm import tqdm
@@ -21,6 +22,8 @@ from localization.gdop import compute_weighted_gdop
 from localization.trilateration import trilateration_2d, compute_noisy_distances, localization_error
 from localization.wls_kalman import WLSLocalizer
 from config import NUM_BEACONS, NUM_SELECTED_BEACONS, BEACON_POSITIONS, GRID_SIZE
+from rl.train_meta_rl import MetaDQN
+from rl.train_rl2_lstm import LSTM_DQN, STATE_SIZE, LSTM_HIDDEN_SIZE, LSTM_NUM_LAYERS, POSSIBLE_ACTIONS, get_state
 
 
 class EvaluationMetrics:
@@ -187,6 +190,7 @@ def evaluate_method(method_name: str,
         EvaluationMetrics object
     """
     metrics = EvaluationMetrics()
+    print(f"    [EVAL] Starting evaluation of {method_name}")
     
     pbar = tqdm(range(num_epochs), desc=f"Evaluating {method_name}", position=0)
     
@@ -199,7 +203,10 @@ def evaluate_method(method_name: str,
         
         # Initialize trainer state/history for this epoch
         if trainer is not None:
-            if hasattr(trainer, 'build_enhanced_state'):
+            if isinstance(trainer, RL2LSTMWrapper):
+                # For RL² LSTM: reset hidden state at start of each episode
+                trainer.reset_hidden_state()
+            elif hasattr(trainer, 'build_enhanced_state'):
                 # For Enhanced LSTM trainer
                 initial_state = trainer.build_enhanced_state(env, [0, 1, 2])
                 trainer.replay_buffer.state_history.clear()
@@ -286,11 +293,15 @@ def evaluate_method(method_name: str,
         pbar.update(1)
     
     pbar.close()
+    print(f"    [EVAL] [OK] {method_name} evaluation complete - collected {len(metrics.localization_errors)} errors")
     return metrics
 
 
 def plot_ecdf_comparison(results: dict):
     """Plot improved ECDF of localization errors."""
+    print(f"\n[PLOT-ECDF] Starting ECDF plot with {len(results)} methods")
+    print(f"[PLOT-ECDF] Methods: {list(results.keys())}")
+    
     fig, ax = plt.subplots(figsize=(10, 6))
 
     colors = plt.cm.tab10.colors  # clean professional color set
@@ -298,6 +309,8 @@ def plot_ecdf_comparison(results: dict):
     for idx, (method_name, metrics) in enumerate(results.items()):
         errors = np.sort(metrics['localization_errors'])
         ecdf = np.arange(1, len(errors) + 1) / len(errors)
+        
+        print(f"[PLOT-ECDF] {idx+1}. Plotting {method_name}: {len(errors)} errors, color_idx={idx % len(colors)}")
 
         ax.plot(
             errors,
@@ -322,6 +335,10 @@ def plot_ecdf_comparison(results: dict):
     ax.set_ylim(0, 1)
 
     plt.tight_layout()
+    
+    print(f"[PLOT-ECDF] [OK] ECDF plot complete with {len(results)} lines")
+    print(f"[PLOT-ECDF] Legend includes: {[line.get_label() for line in ax.get_lines()][:5]}...")
+    
     return fig
 
 
@@ -541,9 +558,90 @@ def domain_gen_selection(env: Environment, trainer: DQNTrainer) -> list:
     return list(trainer.possible_actions[action])
 
 
+def meta_rl_selection(env: Environment, meta_model: nn.Module) -> list:
+    """
+    RL-based beacon selection using meta-learned DQN model.
+    Uses the trained meta-model for quick decision-making on any environment.
+    
+    Args:
+        env: Environment instance
+        meta_model: Trained MetaDQN model
+    
+    Returns:
+        List of selected beacon indices
+    """
+    # Get device from model parameters
+    device = next(meta_model.parameters()).device
+    
+    # Get state vector (battery levels only)
+    state = torch.tensor(np.array(env.get_battery_levels(), dtype=np.float32)).unsqueeze(0).to(device)
+    
+    # Get Q-values from meta-model
+    with torch.no_grad():
+        q_values = meta_model(state)
+        action_idx = q_values.argmax(dim=1).item()
+    
+    # Convert action index to beacon combination
+    possible_actions = list(combinations(range(NUM_BEACONS), NUM_SELECTED_BEACONS))
+    return list(possible_actions[action_idx])
+
+
+class RL2LSTMWrapper:
+    """Wrapper for RL² LSTM model that manages hidden state during evaluation."""
+    
+    def __init__(self, model: LSTM_DQN, device: torch.device):
+        """
+        Args:
+            model: Trained LSTM_DQN model
+            device: Device to use (cpu or cuda)
+        """
+        self.model = model
+        self.device = device
+        self.hidden_state = None
+        self.possible_actions = POSSIBLE_ACTIONS
+    
+    def reset_hidden_state(self):
+        """Reset hidden state for new episode."""
+        self.hidden_state = None
+    
+    def select_action(self, state: np.ndarray) -> int:
+        """
+        Select action using LSTM-DQN with persistent hidden state.
+        
+        Args:
+            state: Current state vector (battery levels)
+        
+        Returns:
+            Action index (beacon combination)
+        """
+        with torch.no_grad():
+            state_tensor = torch.tensor(state, dtype=torch.float32).unsqueeze(0).to(self.device)
+            q_values, self.hidden_state = self.model(state_tensor, self.hidden_state)
+            action = q_values.argmax(dim=-1).item()
+        
+        return action
+
+
+def rl2_lstm_selection(env: Environment, wrapper: RL2LSTMWrapper) -> list:
+    """
+    RL² LSTM-based beacon selection.
+    Uses LSTM hidden state for implicit environment adaptation.
+    
+    Args:
+        env: Environment instance
+        wrapper: RL2LSTMWrapper with model and hidden state
+    
+    Returns:
+        List of selected beacon indices
+    """
+    state = get_state(env)
+    action_idx = wrapper.select_action(state)
+    return list(wrapper.possible_actions[action_idx])
+
+
 def main():
     print("\n" + "="*70)
-    print("BEACON SELECTION EVALUATION - 3 METHODS")
+    print("BEACON SELECTION EVALUATION")
     print("="*70 + "\n")
     
     # =========================================================================
@@ -621,17 +719,23 @@ def main():
     print("Evaluating all methods on same simulation sequences...\n")
     seed_offset = 42  # Base seed for reproducibility
     
+    evaluated_methods = []  # Track which methods were successfully evaluated
+    
     print("Evaluating Random Node Selection...")
     results['Random'] = evaluate_method('Random', random_selection, num_epochs=100, seed_offset=seed_offset)
+    evaluated_methods.append('Random')
     
     print("Evaluating GDOP Node Selection...")
     results['GDOP'] = evaluate_method('GDOP', wgdop_selection, num_epochs=100, seed_offset=seed_offset)
+    evaluated_methods.append('GDOP')
 
     print("\nEvaluating Nearest Neighbor...")
     results['Nearest Neighbor'] = evaluate_method('Nearest Neighbor', nearest_neighbor_selection, num_epochs=100, seed_offset=seed_offset)
+    evaluated_methods.append('Nearest Neighbor')
     
     print("\nEvaluating DQN-based Selection...")
     results['DQN'] = evaluate_method('DQN', rl_selection, trainer=dqn_trainer, num_epochs=100, seed_offset=seed_offset)
+    evaluated_methods.append('DQN')
     
     # Load and evaluate domain-generalized model if available
     print("\nChecking for domain-generalized model...")
@@ -650,10 +754,137 @@ def main():
             results['Domain Gen DQN'] = evaluate_method('Domain Gen DQN', domain_gen_selection, 
                                                        trainer=domain_gen_trainer, num_epochs=100, 
                                                        seed_offset=seed_offset)
+            evaluated_methods.append('Domain Gen DQN')
         else:
             print("No domain generalization models found in checkpoint directory")
     else:
         print("Domain-generalized model checkpoint directory not found")
+    
+    # Load and evaluate meta-RL model if available
+    print("\nChecking for meta-RL model...")
+    meta_rl_checkpoint_dir = Path(__file__).parent.parent.parent / 'checkpoints' / 'meta_rl'
+    print(f"  Looking in: {meta_rl_checkpoint_dir}")
+    
+    if meta_rl_checkpoint_dir.exists():
+        print(f"  Directory exists")
+        all_files = list(meta_rl_checkpoint_dir.glob('*.pt'))
+        print(f"  All .pt files in directory: {[f.name for f in all_files]}")
+        
+        meta_model_files = sorted(meta_rl_checkpoint_dir.glob('meta_dqn_final_*.pt'), reverse=True)
+        if meta_model_files:
+            model_path = meta_model_files[0]
+            print(f"  Found meta-RL final model: {model_path.name}")
+            print(f"Loading meta-RL model from {model_path}...")
+            
+            try:
+                # Create MetaDQN model
+                action_size = len(list(combinations(range(NUM_BEACONS), NUM_SELECTED_BEACONS)))
+                meta_model = MetaDQN(state_size=NUM_BEACONS, action_size=action_size, hidden_size=64)
+                device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+                meta_model.load_state_dict(torch.load(model_path, map_location=device, weights_only=False))
+                meta_model.to(device)
+                meta_model.eval()
+                
+                print(f"  [OK] Meta-RL model loaded successfully on {device}")
+                print("Evaluating Meta-RL Selection...")
+                results['Meta RL'] = evaluate_method('Meta RL', meta_rl_selection, 
+                                                    trainer=meta_model, num_epochs=100, 
+                                                    seed_offset=seed_offset)
+                evaluated_methods.append('Meta RL')
+            except Exception as e:
+                print(f"  [FAIL] Error loading/evaluating Meta-RL model: {e}")
+                import traceback
+                traceback.print_exc()
+        else:
+            print("  [FAIL] No 'meta_dqn_final_*.pt' files found")
+            print("  -> You need to run: python ./src/rl/train_meta_rl.py")
+            checkpoint_files = list(meta_rl_checkpoint_dir.glob('meta_dqn_*.pt'))
+            if checkpoint_files:
+                print(f"  (Found {len(checkpoint_files)} checkpoint files but no final model)")
+    else:
+        print(f"  [FAIL] Directory does not exist: {meta_rl_checkpoint_dir}")
+        print("  -> You need to run: python ./src/rl/train_meta_rl.py")
+    
+    # Load and evaluate RL² LSTM model if available
+    print("\nChecking for RL² LSTM model...")
+    rl2_lstm_checkpoint_dir = Path(__file__).parent.parent.parent / 'checkpoints' / 'rl2_lstm'
+    print(f"  Looking in: {rl2_lstm_checkpoint_dir}")
+    
+    if rl2_lstm_checkpoint_dir.exists():
+        print(f"  [OK] Directory exists")
+        all_files = list(rl2_lstm_checkpoint_dir.glob('*.pt'))
+        print(f"  Found {len(all_files)} .pt files: {[f.name for f in sorted(all_files)[:10]]}")
+        
+        # Try multiple glob patterns to find model files
+        rl2_model_files = list(rl2_lstm_checkpoint_dir.glob('rl2_lstm_*.pt'))
+        print(f"  Glob 'rl2_lstm_*.pt' found: {len(rl2_model_files)} files")
+        
+        if not rl2_model_files:
+            # Try without underscore variant
+            rl2_model_files = list(rl2_lstm_checkpoint_dir.glob('rl2*lstm*.pt'))
+            print(f"  Fallback glob 'rl2*lstm*.pt' found: {len(rl2_model_files)} files")
+        
+        if rl2_model_files:
+            # Sort by episode number (highest first)
+            rl2_model_files = sorted(rl2_model_files, 
+                                    key=lambda x: int(x.name.split('_')[2]) if '_' in x.name else 0,
+                                    reverse=True)
+            
+            model_path = rl2_model_files[0]
+            print(f"  [OK] Found RL² LSTM model: {model_path.name}")
+            print(f"  Loading from: {model_path}...")
+            
+            try:
+                # Create and load RL² LSTM model
+                device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+                rl2_lstm_model = LSTM_DQN(
+                    input_size=STATE_SIZE,
+                    hidden_size=LSTM_HIDDEN_SIZE,
+                    num_actions=len(POSSIBLE_ACTIONS),
+                    num_layers=LSTM_NUM_LAYERS
+                ).to(device)
+                
+                print(f"  [OK] Model created on {device}")
+                print(f"    Expected: input={STATE_SIZE}, hidden={LSTM_HIDDEN_SIZE}, actions={len(POSSIBLE_ACTIONS)}")
+                
+                checkpoint = torch.load(model_path, map_location=device, weights_only=False)
+                print(f"  [OK] Checkpoint loaded from {model_path.name}")
+                
+                rl2_lstm_model.load_state_dict(checkpoint['model_state_dict'])
+                print(f"  [OK] Model state dict loaded")
+                
+                rl2_lstm_model.eval()
+                print(f"  [OK] RL² LSTM model loaded successfully on {device}")
+                
+                # Create wrapper for hidden state management
+                rl2_wrapper = RL2LSTMWrapper(rl2_lstm_model, device)
+                
+                print("  Evaluating RL² LSTM Selection...")
+                results['RL² LSTM'] = evaluate_method('RL² LSTM', rl2_lstm_selection, 
+                                                     trainer=rl2_wrapper, num_epochs=100, 
+                                                     seed_offset=seed_offset)
+                evaluated_methods.append('RL² LSTM')
+                print("\n  [OK] RL² LSTM evaluation complete!")
+            except RuntimeError as e:
+                if 'size mismatch' in str(e).lower():
+                    print(f"  [FAIL] Model architecture mismatch - checkpoint incompatible")
+                    print(f"     Old checkpoint uses different action space (4 movement actions)")
+                    print(f"     New model needs: input={STATE_SIZE}, actions={len(POSSIBLE_ACTIONS)} (beacon combos)")
+                    print(f"  -> Train new RL² LSTM model: python ./src/rl/train_rl2_lstm.py")
+                else:
+                    print(f"  [FAIL] RuntimeError loading RL² LSTM model: {e}")
+            except Exception as e:
+                print(f"  [FAIL] Error loading/evaluating RL² LSTM model: {e}")
+                print(f"  Exception type: {type(e).__name__}")
+                import traceback
+                traceback.print_exc()
+        else:
+            print("  [FAIL] No 'rl2_lstm_*.pt' files found")
+            print("  -> Files should be at: checkpoints/rl2_lstm/rl2_lstm_N_TIMESTAMP.pt")
+            print("  -> Run this first: python ./src/rl/train_rl2_lstm.py")
+    else:
+        print(f"  [FAIL] Directory does not exist: {rl2_lstm_checkpoint_dir}")
+        print("  -> You need to run: python ./src/rl/train_rl2_lstm.py")
     
     # print("\nEvaluating LSTM-based Selection...")
     # results['LSTM'] = evaluate_method('LSTM', lstm_selection, trainer=lstm_trainer, num_epochs=100, seed_offset=seed_offset)
@@ -664,19 +895,36 @@ def main():
     # print("\nEvaluating Enhanced DQN-based Selection (WLS + Geometry)...")
     # results['Enhanced DQN'] = evaluate_method('Enhanced DQN', enhanced_lstm_selection, trainer=enhanced_dqn_trainer, num_epochs=100, seed_offset=seed_offset)
     
-    # Print summary statistics
+    # Print which methods were evaluated
     print("\n" + "="*70)
+    print("METHODS EVALUATED")
+    print("="*70)
+    print(f"\nSuccessfully evaluated {len(results)} methods:")
+    for i, method in enumerate(results.keys(), 1):
+        print(f"  {i}. {method}")
+    print(f"\nTotal methods in results: {len(results)}")
+    print()
+    
+    # Print summary statistics
+    print("="*70)
     print("EVALUATION SUMMARY")
     print("="*70 + "\n")
     
     # Convert EvaluationMetrics objects to dictionaries
     results_dict = {}
+    print("Converting results to dictionaries...")
     for method_name, metrics in results.items():
+        print(f"  Converting {method_name}: {type(metrics)}")
         if isinstance(metrics, EvaluationMetrics):
             results_dict[method_name] = metrics.get_metrics()
+            print(f"    [OK] Converted {method_name} to metrics dict with {len(results_dict[method_name].get('localization_errors', []))} errors")
         else:
             # For domain gen metrics (if already a dict)
             results_dict[method_name] = metrics
+            print(f"    [OK] Used {method_name} as dict")
+    
+    print(f"\n[OK] Total methods in results_dict: {len(results_dict)}")
+    print(f"  Methods: {list(results_dict.keys())}\n")
     
     for method_name, metric_dict in results_dict.items():
         print(f"{method_name}:")
@@ -742,6 +990,69 @@ def main():
         print(f"    Domain Gen DQN:   {dgdqn_metrics['error_90th']:.4f} m")
         print()
     
+    # Show meta-RL comparison if available
+    if 'Meta RL' in results_dict and 'DQN' in results_dict:
+        print("="*70)
+        print("META-RL IMPROVEMENT ANALYSIS")
+        print("="*70 + "\n")
+        
+        dqn_metrics = results_dict['DQN']
+        meta_rl_metrics = results_dict['Meta RL']
+        
+        error_improvement = (dqn_metrics['mean_error'] - meta_rl_metrics['mean_error']) / dqn_metrics['mean_error'] * 100
+        reward_improvement = (meta_rl_metrics['mean_reward'] - dqn_metrics['mean_reward']) / abs(dqn_metrics['mean_reward']) * 100 if dqn_metrics['mean_reward'] != 0 else 0
+        
+        print(f"DQN vs Meta RL (on same 100-epoch benchmark):")
+        print(f"\n  Localization Error:")
+        print(f"    Standard DQN:     {dqn_metrics['mean_error']:.4f} m ± {dqn_metrics['std_error']:.4f} m")
+        print(f"    Meta RL:          {meta_rl_metrics['mean_error']:.4f} m ± {meta_rl_metrics['std_error']:.4f} m")
+        print(f"    Improvement:      {error_improvement:+.2f}%")
+        print(f"\n  Mean Reward:")
+        print(f"    Standard DQN:     {dqn_metrics['mean_reward']:.4f}")
+        print(f"    Meta RL:          {meta_rl_metrics['mean_reward']:.4f}")
+        print(f"    Improvement:      {reward_improvement:+.2f}%")
+        print(f"\n  90th Percentile Error:")
+        print(f"    Standard DQN:     {dqn_metrics['error_90th']:.4f} m")
+        print(f"    Meta RL:          {meta_rl_metrics['error_90th']:.4f} m")
+        print()
+    
+    # Show RL² LSTM comparison if available
+    if 'RL² LSTM' in results_dict and 'DQN' in results_dict:
+        print("="*70)
+        print("RL² LSTM IMPROVEMENT ANALYSIS")
+        print("="*70 + "\n")
+        
+        dqn_metrics = results_dict['DQN']
+        rl2_lstm_metrics = results_dict['RL² LSTM']
+        
+        error_improvement = (dqn_metrics['mean_error'] - rl2_lstm_metrics['mean_error']) / dqn_metrics['mean_error'] * 100
+        reward_improvement = (rl2_lstm_metrics['mean_reward'] - dqn_metrics['mean_reward']) / abs(dqn_metrics['mean_reward']) * 100 if dqn_metrics['mean_reward'] != 0 else 0
+        battery_dev_improvement = (dqn_metrics['battery_deviation'] - rl2_lstm_metrics['battery_deviation']) / dqn_metrics['battery_deviation'] * 100 if dqn_metrics['battery_deviation'] > 0 else 0
+        
+        print(f"DQN vs RL² LSTM (on same 100-epoch benchmark):")
+        print(f"\n  Localization Error:")
+        print(f"    Standard DQN:     {dqn_metrics['mean_error']:.4f} m ± {dqn_metrics['std_error']:.4f} m")
+        print(f"    RL² LSTM:         {rl2_lstm_metrics['mean_error']:.4f} m ± {rl2_lstm_metrics['std_error']:.4f} m")
+        print(f"    Improvement:      {error_improvement:+.2f}%")
+        print(f"\n  Mean Reward:")
+        print(f"    Standard DQN:     {dqn_metrics['mean_reward']:.4f}")
+        print(f"    RL² LSTM:         {rl2_lstm_metrics['mean_reward']:.4f}")
+        print(f"    Improvement:      {reward_improvement:+.2f}%")
+        print(f"\n  90th Percentile Error:")
+        print(f"    Standard DQN:     {dqn_metrics['error_90th']:.4f} m")
+        print(f"    RL² LSTM:         {rl2_lstm_metrics['error_90th']:.4f} m")
+        print(f"\n  95th Percentile Error:")
+        print(f"    Standard DQN:     {dqn_metrics['error_95th']:.4f} m")
+        print(f"    RL² LSTM:         {rl2_lstm_metrics['error_95th']:.4f} m")
+        print(f"\n  Battery Deviation (lower is better):")
+        print(f"    Standard DQN:     {dqn_metrics['battery_deviation']:.6f}")
+        print(f"    RL² LSTM:         {rl2_lstm_metrics['battery_deviation']:.6f}")
+        print(f"    Improvement:      {battery_dev_improvement:+.2f}%")
+        print(f"\n  LoS Selection Ratio:")
+        print(f"    Standard DQN:     {dqn_metrics['los_ratio']:.2%}")
+        print(f"    RL² LSTM:         {rl2_lstm_metrics['los_ratio']:.2%}")
+        print()
+    
     # Save results to text file
     eval_dir = Path(__file__).parent / 'results'
     eval_dir.mkdir(exist_ok=True)
@@ -753,45 +1064,24 @@ def main():
         
         for method_name, metric_dict in results_dict.items():
             f.write(f"{method_name}:\n")
-            if 'mean_error' in metric_dict:
-                f.write(f"  Mean Localization Error: {metric_dict['mean_error']:.4f} m\n")
-            if 'rmse_error' in metric_dict:
-                f.write(f"  RMSE Localization Error: {metric_dict['rmse_error']:.4f} m\n")
-            if 'error_90th' in metric_dict:
-                f.write(f"  90th Percentile Error:   {metric_dict['error_90th']:.4f} m\n")
-            if 'error_95th' in metric_dict:
-                f.write(f"  95th Percentile Error:   {metric_dict['error_95th']:.4f} m\n")
-            if 'std_error' in metric_dict:
-                f.write(f"  Std Dev Error:           {metric_dict['std_error']:.4f} m\n")
-            if 'mean_reward' in metric_dict:
-                f.write(f"  Mean Reward:             {metric_dict['mean_reward']:.4f}\n")
-            if 'total_steps' in metric_dict:
-                f.write(f"  Total Steps:             {metric_dict['total_steps']}\n")
-            if 'battery_deviation' in metric_dict:
-                f.write(f"  Battery Deviation:       {metric_dict['battery_deviation']:.6f}\n")
-            if 'los_ratio' in metric_dict:
-                f.write(f"  LoS Selection Ratio:     {metric_dict['los_ratio']:.2%}\n")
-            
-            if 'selection_frequency' in metric_dict:
-                f.write("  Selection Frequency per Beacon:\n")
-                freq = metric_dict['selection_frequency']
-                for i, p in enumerate(freq):
-                    f.write(f"    Beacon {i}: {p:.1%}\n")
-            
-            if 'errors_by_beacon_count' in metric_dict:
-                f.write("  Performance by Beacon Count:\n")
-                for bc, err_stats in sorted(metric_dict['errors_by_beacon_count'].items()):
-                    f.write(f"    {bc} beacons: {err_stats['mean']:.4f} ± {err_stats['std']:.4f} m\n")
-                
-                f.write("  Performance by LoS Probability:\n")
-                for los_p, err_stats in sorted(metric_dict['errors_by_los_prob'].items()):
-                    f.write(f"    LoS={los_p}: {err_stats['mean']:.4f} ± {err_stats['std']:.4f} m\n")
-            
+            f.write(f"  Mean Localization Error: {metric_dict['mean_error']:.4f} m\n")
+            f.write(f"  RMSE Localization Error: {metric_dict['rmse_error']:.4f} m\n")
+            f.write(f"  90th Percentile Error:   {metric_dict['error_90th']:.4f} m\n")
+            f.write(f"  95th Percentile Error:   {metric_dict['error_95th']:.4f} m\n")
+            f.write(f"  Std Dev Error:           {metric_dict['std_error']:.4f} m\n")
+            f.write(f"  Mean Reward:             {metric_dict['mean_reward']:.4f}\n")
+            f.write(f"  Total Steps:             {metric_dict['total_steps']}\n")
+            f.write(f"  Battery Deviation:       {metric_dict['battery_deviation']:.6f}\n")
+            f.write(f"  LoS Selection Ratio:     {metric_dict['los_ratio']:.2%}\n")
+            f.write("  Selection Frequency per Beacon:\n")
+            freq = metric_dict['selection_frequency']
+            for i, p in enumerate(freq):
+                f.write(f"    Beacon {i}: {p:.1%}\n")
             f.write("\n")
 
             # Add domain generalization comparison to file
-            if 'Domain Gen DQN' in results_dict and 'DQN' in results_dict:
-                f.write("\n" + "="*50 + "\n")
+            if 'Domain Gen DQN' in results_dict and 'DQN' in results_dict and method_name == 'Domain Gen DQN':
+                f.write("="*50 + "\n")
                 f.write("DOMAIN GENERALIZATION COMPARISON\n")
                 f.write("="*50 + "\n\n")
                 
@@ -815,11 +1105,80 @@ def main():
                 f.write("90th Percentile Error:\n")
                 f.write(f"  Standard DQN:     {dqn_metrics['error_90th']:.4f} m\n")
                 f.write(f"  Domain Gen DQN:   {dgdqn_metrics['error_90th']:.4f} m\n")
+            
+            # Add meta-RL comparison to file
+            if 'Meta RL' in results_dict and 'DQN' in results_dict and method_name == 'Meta RL':
+                f.write("="*50 + "\n")
+                f.write("META-RL COMPARISON\n")
+                f.write("="*50 + "\n\n")
+                
+                dqn_metrics = results_dict['DQN']
+                meta_rl_metrics = results_dict['Meta RL']
+                
+                error_improvement = (dqn_metrics['mean_error'] - meta_rl_metrics['mean_error']) / dqn_metrics['mean_error'] * 100
+                reward_improvement = (meta_rl_metrics['mean_reward'] - dqn_metrics['mean_reward']) / abs(dqn_metrics['mean_reward']) * 100 if dqn_metrics['mean_reward'] != 0 else 0
+                
+                f.write("DQN vs Meta RL (on same 100-epoch benchmark):\n\n")
+                f.write("Localization Error:\n")
+                f.write(f"  Standard DQN:     {dqn_metrics['mean_error']:.4f} m ± {dqn_metrics['std_error']:.4f} m\n")
+                f.write(f"  Meta RL:          {meta_rl_metrics['mean_error']:.4f} m ± {meta_rl_metrics['std_error']:.4f} m\n")
+                f.write(f"  Improvement:      {error_improvement:+.2f}%\n\n")
+                
+                f.write("Mean Reward:\n")
+                f.write(f"  Standard DQN:     {dqn_metrics['mean_reward']:.4f}\n")
+                f.write(f"  Meta RL:          {meta_rl_metrics['mean_reward']:.4f}\n")
+                f.write(f"  Improvement:      {reward_improvement:+.2f}%\n\n")
+                
+                f.write("90th Percentile Error:\n")
+                f.write(f"  Standard DQN:     {dqn_metrics['error_90th']:.4f} m\n")
+                f.write(f"  Meta RL:          {meta_rl_metrics['error_90th']:.4f} m\n")
+            
+            # Add RL² LSTM comparison to file
+            if 'RL² LSTM' in results_dict and 'DQN' in results_dict and method_name == 'RL² LSTM':
+                f.write("="*50 + "\n")
+                f.write("RL² LSTM COMPARISON\n")
+                f.write("="*50 + "\n\n")
+                
+                dqn_metrics = results_dict['DQN']
+                rl2_lstm_metrics = results_dict['RL² LSTM']
+                
+                error_improvement = (dqn_metrics['mean_error'] - rl2_lstm_metrics['mean_error']) / dqn_metrics['mean_error'] * 100
+                reward_improvement = (rl2_lstm_metrics['mean_reward'] - dqn_metrics['mean_reward']) / abs(dqn_metrics['mean_reward']) * 100 if dqn_metrics['mean_reward'] != 0 else 0
+                battery_dev_improvement = (dqn_metrics['battery_deviation'] - rl2_lstm_metrics['battery_deviation']) / dqn_metrics['battery_deviation'] * 100 if dqn_metrics['battery_deviation'] > 0 else 0
+                
+                f.write("DQN vs RL² LSTM (on same 100-epoch benchmark):\n\n")
+                f.write("Localization Error:\n")
+                f.write(f"  Standard DQN:     {dqn_metrics['mean_error']:.4f} m ± {dqn_metrics['std_error']:.4f} m\n")
+                f.write(f"  RL² LSTM:         {rl2_lstm_metrics['mean_error']:.4f} m ± {rl2_lstm_metrics['std_error']:.4f} m\n")
+                f.write(f"  Improvement:      {error_improvement:+.2f}%\n\n")
+                
+                f.write("Mean Reward:\n")
+                f.write(f"  Standard DQN:     {dqn_metrics['mean_reward']:.4f}\n")
+                f.write(f"  RL² LSTM:         {rl2_lstm_metrics['mean_reward']:.4f}\n")
+                f.write(f"  Improvement:      {reward_improvement:+.2f}%\n\n")
+                
+                f.write("90th Percentile Error:\n")
+                f.write(f"  Standard DQN:     {dqn_metrics['error_90th']:.4f} m\n")
+                f.write(f"  RL² LSTM:         {rl2_lstm_metrics['error_90th']:.4f} m\n\n")
+                
+                f.write("Battery Deviation (lower is better):\n")
+                f.write(f"  Standard DQN:     {dqn_metrics['battery_deviation']:.6f}\n")
+                f.write(f"  RL² LSTM:         {rl2_lstm_metrics['battery_deviation']:.6f}\n")
+                f.write(f"  Improvement:      {battery_dev_improvement:+.2f}%\n\n")
+                
+                f.write("LoS Selection Ratio:\n")
+                f.write(f"  Standard DQN:     {dqn_metrics['los_ratio']:.2%}\n")
+                f.write(f"  RL² LSTM:         {rl2_lstm_metrics['los_ratio']:.2%}\n")
 
     print(f"Summary saved to {summary_file}")
     
     # Generate plots
-    print("Generating plots...")
+    print("\n" + "="*70)
+    print("GENERATING PLOTS")
+    print("="*70)
+    print(f"Generating plots with {len(results_dict)} methods...")
+    print(f"Methods available: {list(results_dict.keys())}")
+    print()
     
     figs = {
         'ecdf': plot_ecdf_comparison(results_dict),
@@ -853,8 +1212,17 @@ def main():
         print(f"Saved: {save_path}")
         plt.close(fig)
     
-    print(f"\n" + "="*70)
-    print(f"Evaluation complete! Results saved to {eval_dir}")
+    # Verification: Confirm which methods are in plots
+    print("\n" + "="*70)
+    print("EVALUATION COMPLETE")
+    print("="*70)
+    print(f"\nMethods evaluated and plotted ({len(results_dict)} total):")
+    for i, method_name in enumerate(results_dict.keys(), 1):
+        marker = "[OK]" if method_name in ['RL² LSTM', 'Meta RL', 'Domain Gen DQN'] else " "
+        print(f"  {marker} {i}. {method_name}")
+    print()
+    
+    print(f"Results saved to: {eval_dir}")
     print("="*70 + "\n")
 
 

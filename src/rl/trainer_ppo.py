@@ -396,7 +396,7 @@ class PPOTrainer:
             pbar_steps = tqdm(range(max_steps), desc=f"Episode {episode + 1} Steps", position=1, leave=False)
             
             for step in pbar_steps:
-                # CORRECT FLOW: state → select_action → apply_action → next_state
+                # CORRECT FLOW: state -> select_action -> apply_action -> next_state
                 
                 # 1. Select action based on current state (with value estimate)
                 action, log_prob, value = self.select_action(state)

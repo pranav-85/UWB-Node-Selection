@@ -35,9 +35,9 @@ def set_cir_mode(use_cir: bool, cir_config = None):
     _USE_CIR_MODEL = use_cir
     _CIR_CONFIG = cir_config
     if use_cir:
-        print(f"✓ CIR-based distance model enabled")
+        print(f"[OK] CIR-based distance model enabled")
     else:
-        print(f"✓ Simple noise distance model enabled")
+        print(f"[OK] Simple noise distance model enabled")
 
 
 def get_cir_mode() -> bool:
