@@ -28,7 +28,6 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from core.environment import Environment
 from reward.reward import compute_reward
-from localization.trilateration import trilateration_2d, compute_noisy_distances
 from config import (
     GRID_SIZE, AGENT_INITIAL_X, AGENT_INITIAL_Y, AGENT_STEP_SIZE,
     NUM_BEACONS, BEACON_INITIAL_BATTERY, NUM_SELECTED_BEACONS,
@@ -54,6 +53,15 @@ EPSILON_END = 0.05
 EPSILON_DECAY = 0.995
 TARGET_UPDATE_FREQ = 1000  # Update target network every N steps
 MAX_EPISODE_LENGTH = 150
+
+
+def set_global_seeds(seed: int) -> None:
+    """Set random seeds for reproducible RL2 training."""
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(seed)
 
 
 Transition = namedtuple('Transition', ('states', 'actions', 'rewards', 'next_states', 'dones'))
@@ -172,7 +180,7 @@ def get_state(env: Environment) -> np.ndarray:
     Observable State = [battery_0, ..., battery_5]
     Total: 6 dimensions (battery levels only - agent position and LoS are not observable)
     """
-    battery_levels = np.array(env.get_battery_levels(), dtype=np.float32)
+    battery_levels = np.array(env.get_battery_levels(), dtype=np.float32) / 100.0
     return battery_levels
 
 
@@ -278,28 +286,15 @@ def train_episode(
         next_state = get_state(env)
         next_states.append(next_state)
         
-        # Compute reward based on localization quality
+        # Compute reward from observable features only.
         agent_pos = np.array(env.agent.get_position())
         selected_beacons = POSSIBLE_ACTIONS[action]
         beacon_positions = np.array([env.beacons[i].position for i in selected_beacons])
         los_flags = [env.current_links[i] for i in selected_beacons]
         battery_levels = env.get_battery_levels()
-        
-        # Get noisy distances
-        distances = compute_noisy_distances(agent_pos, beacon_positions, los_flags)
-        
-        # Estimate position via trilateration
-        est_x, est_y = trilateration_2d(beacon_positions, distances)
-        est_pos = np.array([est_x, est_y])
-        
-        # Localization error as primary reward signal
-        localization_error = np.linalg.norm(agent_pos - est_pos)
-        reward = -localization_error  # Negative error as reward (minimize error)
-        
-        # Add battery depletion penalty
-        min_battery = min(battery_levels)
-        if min_battery < 10.0:
-            reward -= 10.0  # Penalize critical battery condition
+
+        reward = compute_reward(agent_pos, beacon_positions, los_flags, battery_levels)
+        reward = float(np.clip(reward, -1.0, 1.0))
         
         rewards.append(reward)
         episode_reward += reward
@@ -399,6 +394,8 @@ def train_rl2(
         save_freq: Save checkpoint every N episodes
         eval_freq: Evaluate every N episodes
     """
+    set_global_seeds(42)
+
     # Initialize model
     model = LSTM_DQN(
         input_size=STATE_SIZE,
@@ -554,28 +551,15 @@ def evaluate_rl2(model: LSTM_DQN, num_eval_episodes: int = 5) -> Tuple[float, fl
             # Get next state
             next_state = get_state(env)
             
-            # Compute reward based on localization quality
+            # Compute reward from observable features only.
             agent_pos = np.array(env.agent.get_position())
             selected_beacons = POSSIBLE_ACTIONS[action]
             beacon_positions = np.array([env.beacons[i].position for i in selected_beacons])
             los_flags = [env.current_links[i] for i in selected_beacons]
             battery_levels = env.get_battery_levels()
-            
-            # Get noisy distances
-            distances = compute_noisy_distances(agent_pos, beacon_positions, los_flags)
-            
-            # Estimate position via trilateration
-            est_x, est_y = trilateration_2d(beacon_positions, distances)
-            est_pos = np.array([est_x, est_y])
-            
-            # Localization error as primary reward signal
-            localization_error = np.linalg.norm(agent_pos - est_pos)
-            reward = -localization_error  # Negative error as reward
-            
-            # Add battery depletion penalty
-            min_battery = min(battery_levels)
-            if min_battery < 10.0:
-                reward -= 10.0
+
+            reward = compute_reward(agent_pos, beacon_positions, los_flags, battery_levels)
+            reward = float(np.clip(reward, -1.0, 1.0))
             
             episode_reward += reward
             
@@ -597,6 +581,8 @@ def evaluate_rl2(model: LSTM_DQN, num_eval_episodes: int = 5) -> Tuple[float, fl
 
 
 if __name__ == '__main__':
+    set_global_seeds(42)
+
     # Train RL² agent
     model, log = train_rl2(
         num_episodes=500,

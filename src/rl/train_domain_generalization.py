@@ -14,6 +14,7 @@ import numpy as np
 from tqdm import tqdm
 import torch
 from datetime import datetime
+from itertools import combinations
 
 # Add src directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -31,13 +32,14 @@ MAX_GRID = 30
 MIN_BEACONS = 6
 MAX_BEACONS = 12
 
-MIN_LOS_PROB = 0.3
+MIN_LOS_PROB = 0.4
 MAX_LOS_PROB = 0.8
 
 MIN_CLUSTERS = 2
 MAX_CLUSTERS = 4
 MIN_RAYS = 3
 MAX_RAYS = 5
+MIN_TRIANGLE_AREA = 1.0
 
 MIN_LOS_STD = 0.03
 MAX_LOS_STD = 0.08
@@ -49,6 +51,36 @@ MIN_BATTERY = 80.0
 MAX_BATTERY = 120.0
 MIN_CONSUMPTION = 2.0
 MAX_CONSUMPTION = 4.0
+
+
+def set_global_seeds(seed: int) -> None:
+    """Set random seeds for reproducible training runs."""
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(seed)
+
+
+def triangle_area(a, b, c) -> float:
+    """Compute 2D triangle area from 3 points."""
+    return abs(
+        0.5 * (
+            a[0] * (b[1] - c[1]) +
+            b[0] * (c[1] - a[1]) +
+            c[0] * (a[1] - b[1])
+        )
+    )
+
+
+def has_valid_beacon_geometry(beacon_positions: list, min_area: float = MIN_TRIANGLE_AREA) -> bool:
+    """Return True when at least one beacon triplet forms a valid triangle."""
+    if len(beacon_positions) < 3:
+        return False
+    for i, j, k in combinations(range(len(beacon_positions)), 3):
+        if triangle_area(beacon_positions[i], beacon_positions[j], beacon_positions[k]) >= min_area:
+            return True
+    return False
 
 
 def generate_environment_configs(num_envs: int, save_path: str) -> List[Dict[str, Any]]:
@@ -101,6 +133,9 @@ def generate_environment_configs(num_envs: int, save_path: str) -> List[Dict[str
         
         beacon_positions = beacon_positions[:num_beacons]
         
+        if not has_valid_beacon_geometry(beacon_positions):
+            beacon_positions[-1][1] = min(grid_height - 1.0, beacon_positions[-1][1] + 1.0)
+
         # LoS probability
         los_probability = random.uniform(MIN_LOS_PROB, MAX_LOS_PROB)
         
@@ -108,8 +143,8 @@ def generate_environment_configs(num_envs: int, save_path: str) -> List[Dict[str
         num_clusters = random.randint(MIN_CLUSTERS, MAX_CLUSTERS)
         rays_per_cluster = random.randint(MIN_RAYS, MAX_RAYS)
         los_max_clusters = random.randint(MIN_CLUSTERS, min(MAX_CLUSTERS, num_clusters))
-        delay_spread = random.uniform(20, 200)  # nanoseconds
-        decay_factor = random.uniform(0.8, 1.2)
+        delay_spread = random.uniform(20, 100)  # nanoseconds
+        decay_factor = random.uniform(0.9, 1.1)
         
         # Noise parameters
         los_std = random.uniform(MIN_LOS_STD, MAX_LOS_STD)
@@ -122,6 +157,7 @@ def generate_environment_configs(num_envs: int, save_path: str) -> List[Dict[str
         
         config = {
             'env_id': env_id,
+            'seed': env_id,
             'grid_width': grid_width,
             'grid_height': grid_height,
             'num_beacons': num_beacons,
@@ -243,6 +279,8 @@ def train_across_environments(
     for episode in pbar:
         # Randomly sample environment config
         config = random.choice(configs)
+        cfg_seed = int(config.get('seed', config.get('env_id', 0)))
+        set_global_seeds(cfg_seed + episode)
         env = create_env_from_config(config)
         env_id = config['env_id']
         num_beacons = len(config['beacon_positions'])
@@ -424,6 +462,8 @@ def evaluate_generalization(
 
 def main():
     """Main function for domain generalization training."""
+    set_global_seeds(42)
+
     print("\n" + "="*70)
     print("DOMAIN GENERALIZATION TRAINING FOR DQN-BASED UWB ANCHOR SELECTION")
     print("="*70 + "\n")

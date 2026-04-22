@@ -101,6 +101,7 @@ class DQNTrainer:
                  state_size: int,
                  hidden_size: int = 64,
                  learning_rate: float = 1e-3,
+                 weight_decay: float = 1e-5,
                  gamma: float = 0.99,
                  epsilon_start: float = 1.0,
                  epsilon_end: float = 0.01,
@@ -115,6 +116,7 @@ class DQNTrainer:
             state_size: Size of state vector
             hidden_size: Hidden layer size
             learning_rate: Learning rate
+            weight_decay: L2 regularization factor for optimizer
             gamma: Discount factor
             epsilon_start: Starting epsilon for epsilon-greedy
             epsilon_end: Minimum epsilon
@@ -149,7 +151,11 @@ class DQNTrainer:
         self.target_network.load_state_dict(self.q_network.state_dict())
         
         # Optimizer
-        self.optimizer = optim.Adam(self.q_network.parameters(), lr=learning_rate)
+        self.optimizer = optim.Adam(
+            self.q_network.parameters(),
+            lr=learning_rate,
+            weight_decay=weight_decay,
+        )
         
         # Replay buffer
         self.replay_buffer = ReplayBuffer(buffer_capacity)
@@ -171,10 +177,11 @@ class DQNTrainer:
         Returns:
             State vector containing only battery levels
         """
-        battery_levels = env.get_battery_levels()
+        battery_levels = np.array(env.get_battery_levels(), dtype=np.float32)
+        battery_levels /= 100.0
         
         # State = [battery_levels...] (NUM_BEACONS = 6 dimensions)
-        state = np.array(battery_levels, dtype=np.float32)
+        state = battery_levels
         
         return state
     

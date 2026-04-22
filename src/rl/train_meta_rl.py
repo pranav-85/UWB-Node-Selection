@@ -33,12 +33,21 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 from core.environment import Environment
 from reward.reward import compute_reward
-from localization.trilateration import uwb_trilateration_epoch
 
 # Configuration
 NUM_BEACONS = 6
 NUM_SELECTED_BEACONS = 3
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+META_STATE_SIZE = NUM_BEACONS + (NUM_BEACONS * 2) + NUM_BEACONS
+
+
+def set_global_seeds(seed: int) -> None:
+    """Set random seeds for reproducible meta-training."""
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(seed)
 
 
 class MetaDQN(nn.Module):
@@ -113,7 +122,8 @@ def generate_task_config():
     grid_size = np.random.uniform(10, 30)  # 10-30m grid
     
     return {
-        'grid_size': grid_size
+        'grid_size': grid_size,
+        'seed': int(np.random.randint(0, 10_000_000)),
     }
 
 
@@ -127,8 +137,25 @@ def create_environment_from_config(config: dict) -> Environment:
     Returns:
         Environment: Configured environment instance
     """
+    if 'seed' in config:
+        set_global_seeds(int(config['seed']))
     env = Environment(grid_size=config['grid_size'])
     return env
+
+
+def build_meta_state(env: Environment) -> np.ndarray:
+    """
+    Build observable Meta-RL state:
+        [normalized battery levels, relative beacon positions, LoS flags]
+    """
+    battery_levels = np.array(env.get_battery_levels(), dtype=np.float32) / 100.0
+    beacon_positions = np.array([b.position for b in env.beacons], dtype=np.float32)
+    grid_scale = float(max(getattr(env, 'grid_size', 1.0), 1.0))
+    beacon_positions = beacon_positions / grid_scale
+    centroid = np.mean(beacon_positions, axis=0, keepdims=True)
+    relative_positions = (beacon_positions - centroid).flatten()
+    los_flags = np.array(getattr(env, 'current_links', [False] * NUM_BEACONS), dtype=np.float32)
+    return np.concatenate([battery_levels, relative_positions, los_flags]).astype(np.float32)
 
 
 def state_to_vector(env: Environment) -> np.ndarray:
@@ -141,8 +168,7 @@ def state_to_vector(env: Environment) -> np.ndarray:
     Returns:
         np.ndarray: State vector of battery levels
     """
-    battery_levels = env.get_battery_levels()
-    return np.array(battery_levels, dtype=np.float32)
+    return build_meta_state(env)
 
 
 def select_action(model: nn.Module, state: np.ndarray, 
@@ -265,18 +291,11 @@ def inner_update(model: nn.Module, env: Environment, num_steps: int = 5,
         los_flags = [env.current_links[i] for i in selected_beacons]
         new_battery_levels = env.get_battery_levels()
         
-        # Compute localization error
-        try:
-            result = uwb_trilateration_epoch(agent_pos, beacon_positions, los_flags)
-            error = result['localization_error']
-        except:
-            error = 100.0  # Default error if trilateration fails
-        
         # Compute reward
         reward = compute_reward(agent_pos, beacon_positions, los_flags, new_battery_levels)
         
         # Episode termination check
-        done = any(battery <= 0.1 for battery in new_battery_levels)
+        done = any(battery <= 10.0 for battery in new_battery_levels)
         
         # Next state
         next_state = state_to_vector(env)
@@ -343,6 +362,8 @@ def meta_update(meta_model: nn.Module, task_batch: list, inner_lr: float = 0.01,
     for task_config in task_batch:
         # Create environment for this task
         env = create_environment_from_task_config(task_config)
+        task_seed = int(task_config.get('seed', 0))
+        set_global_seeds(task_seed)
         
         # Inner update: adapt to this task
         adapted_model = inner_update(meta_model, env, num_steps=inner_steps,
@@ -371,7 +392,7 @@ def meta_update(meta_model: nn.Module, task_batch: list, inner_lr: float = 0.01,
             
             reward = compute_reward(agent_pos, beacon_positions, los_flags, new_battery_levels)
             
-            done = any(battery <= 0.1 for battery in new_battery_levels)
+            done = any(battery <= 10.0 for battery in new_battery_levels)
             next_state = state_to_vector(env)
             
             task_replay_buffer.push(state, action_idx, reward, next_state, done)
@@ -418,6 +439,8 @@ def create_environment_from_task_config(config: dict) -> Environment:
     Returns:
         Environment: Configured environment
     """
+    if 'seed' in config:
+        set_global_seeds(int(config['seed']))
     env = Environment(grid_size=config['grid_size'])
     return env
 
@@ -441,6 +464,8 @@ def train_meta_rl(meta_model: nn.Module, num_iterations: int = 100,
     Returns:
         nn.Module: Trained meta-model
     """
+    set_global_seeds(42)
+
     possible_actions = list(combinations(range(NUM_BEACONS), NUM_SELECTED_BEACONS))
     
     os.makedirs(os.path.join(checkpoint_dir, 'meta_rl'), exist_ok=True)
@@ -508,6 +533,7 @@ def test_adaptation(meta_model: nn.Module, num_test_tasks: int = 5,
         # Create new test task
         test_config = generate_task_config()
         env = create_environment_from_task_config(test_config)
+        set_global_seeds(int(test_config.get('seed', task_id)))
         
         # --- Evaluate BEFORE adaptation ---
         env.reset_agent_to_random_location()
@@ -530,19 +556,17 @@ def test_adaptation(meta_model: nn.Module, num_test_tasks: int = 5,
             los_flags = [env.current_links[i] for i in selected_beacons]
             new_battery_levels = env.get_battery_levels()
             
-            # Compute localization error
-            try:
-                result = uwb_trilateration_epoch(agent_pos, beacon_positions, los_flags)
-                error = result['localization_error']
-            except:
-                error = 100.0
+            # Geometry-only proxy metric for adaptation diagnostics.
+            beacon_positions_arr = np.array(beacon_positions, dtype=np.float32)
+            spread = float(np.mean(np.linalg.norm(beacon_positions_arr - beacon_positions_arr.mean(axis=0), axis=1)))
+            error = max(0.0, 1.0 - spread)
             
             reward = compute_reward(agent_pos, beacon_positions, los_flags, new_battery_levels)
             
             errors_before.append(error)
             rewards_before.append(reward)
             
-            done = any(battery <= 0.1 for battery in new_battery_levels)
+            done = any(battery <= 10.0 for battery in new_battery_levels)
             state = state_to_vector(env)
             if done:
                 env.reset_agent_to_random_location()
@@ -578,19 +602,16 @@ def test_adaptation(meta_model: nn.Module, num_test_tasks: int = 5,
             los_flags = [env.current_links[i] for i in selected_beacons]
             new_battery_levels = env.get_battery_levels()
             
-            # Compute localization error
-            try:
-                result = uwb_trilateration_epoch(agent_pos, beacon_positions, los_flags)
-                error = result['localization_error']
-            except:
-                error = 100.0
+            beacon_positions_arr = np.array(beacon_positions, dtype=np.float32)
+            spread = float(np.mean(np.linalg.norm(beacon_positions_arr - beacon_positions_arr.mean(axis=0), axis=1)))
+            error = max(0.0, 1.0 - spread)
             
             reward = compute_reward(agent_pos, beacon_positions, los_flags, new_battery_levels)
             
             errors_after.append(error)
             rewards_after.append(reward)
             
-            done = any(battery <= 0.1 for battery in new_battery_levels)
+            done = any(battery <= 10.0 for battery in new_battery_levels)
             state = state_to_vector(env)
             if done:
                 env.reset_agent_to_random_location()
@@ -633,19 +654,21 @@ def test_adaptation(meta_model: nn.Module, num_test_tasks: int = 5,
 
 def main():
     """Main entry point for meta-RL training."""
+    set_global_seeds(42)
+
     print("=" * 80)
     print("UWB Node Selection - Meta-RL Training (MAML-style)")
     print("=" * 80)
     
     # Initialize meta-model
-    state_size = NUM_BEACONS  # Battery levels only
+    state_size = META_STATE_SIZE
     action_size = len(list(combinations(range(NUM_BEACONS), NUM_SELECTED_BEACONS)))
     hidden_size = 64
     
     meta_model = MetaDQN(state_size, action_size, hidden_size).to(DEVICE)
     
     print(f"\nMeta-DQN Architecture:")
-    print(f"  State Size: {state_size} (battery levels)")
+    print(f"  State Size: {state_size} (battery + relative beacon positions + LoS flags)")
     print(f"  Hidden Size: {hidden_size}")
     print(f"  Action Size: {action_size}")
     print(f"  Device: {DEVICE}")
