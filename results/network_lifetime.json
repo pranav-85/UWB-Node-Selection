@@ -1,0 +1,184 @@
+{
+  "Random": {
+    "FND": {
+      "mean": 246.5,
+      "std": 5.5,
+      "min": 241,
+      "max": 252
+    },
+    "HND": {
+      "mean": 262.5,
+      "std": 0.5,
+      "min": 262,
+      "max": 263
+    },
+    "COVERAGE_LOSS": {
+      "mean": 278.5,
+      "std": 4.5,
+      "min": 274,
+      "max": 283
+    },
+    "THRESHOLD": {
+      "mean": 223.5,
+      "std": 2.5,
+      "min": 221,
+      "max": 226
+    }
+  },
+  "Nearest Neighbor": {
+    "FND": {
+      "mean": 252.5,
+      "std": 9.5,
+      "min": 243,
+      "max": 262
+    },
+    "HND": {
+      "mean": 277.5,
+      "std": 1.5,
+      "min": 276,
+      "max": 279
+    },
+    "COVERAGE_LOSS": {
+      "mean": 281.5,
+      "std": 2.5,
+      "min": 279,
+      "max": 284
+    },
+    "THRESHOLD": {
+      "mean": 226.5,
+      "std": 7.5,
+      "min": 219,
+      "max": 234
+    }
+  },
+  "GDOP": {
+    "FND": {
+      "mean": 252.5,
+      "std": 9.5,
+      "min": 243,
+      "max": 262
+    },
+    "HND": {
+      "mean": 277.5,
+      "std": 1.5,
+      "min": 276,
+      "max": 279
+    },
+    "COVERAGE_LOSS": {
+      "mean": 281.5,
+      "std": 2.5,
+      "min": 279,
+      "max": 284
+    },
+    "THRESHOLD": {
+      "mean": 226.5,
+      "std": 7.5,
+      "min": 219,
+      "max": 234
+    }
+  },
+  "DQN": {
+    "FND": {
+      "mean": 252.5,
+      "std": 9.5,
+      "min": 243,
+      "max": 262
+    },
+    "HND": {
+      "mean": 277.5,
+      "std": 1.5,
+      "min": 276,
+      "max": 279
+    },
+    "COVERAGE_LOSS": {
+      "mean": 281.5,
+      "std": 2.5,
+      "min": 279,
+      "max": 284
+    },
+    "THRESHOLD": {
+      "mean": 226.5,
+      "std": 7.5,
+      "min": 219,
+      "max": 234
+    }
+  },
+  "Domain Gen": {
+    "FND": {
+      "mean": 252.5,
+      "std": 9.5,
+      "min": 243,
+      "max": 262
+    },
+    "HND": {
+      "mean": 277.5,
+      "std": 1.5,
+      "min": 276,
+      "max": 279
+    },
+    "COVERAGE_LOSS": {
+      "mean": 281.5,
+      "std": 2.5,
+      "min": 279,
+      "max": 284
+    },
+    "THRESHOLD": {
+      "mean": 226.5,
+      "std": 7.5,
+      "min": 219,
+      "max": 234
+    }
+  },
+  "Meta-RL": {
+    "FND": {
+      "mean": 252.5,
+      "std": 9.5,
+      "min": 243,
+      "max": 262
+    },
+    "HND": {
+      "mean": 277.5,
+      "std": 1.5,
+      "min": 276,
+      "max": 279
+    },
+    "COVERAGE_LOSS": {
+      "mean": 281.5,
+      "std": 2.5,
+      "min": 279,
+      "max": 284
+    },
+    "THRESHOLD": {
+      "mean": 226.5,
+      "std": 7.5,
+      "min": 219,
+      "max": 234
+    }
+  },
+  "RL2 LSTM": {
+    "FND": {
+      "mean": 252.5,
+      "std": 9.5,
+      "min": 243,
+      "max": 262
+    },
+    "HND": {
+      "mean": 277.5,
+      "std": 1.5,
+      "min": 276,
+      "max": 279
+    },
+    "COVERAGE_LOSS": {
+      "mean": 281.5,
+      "std": 2.5,
+      "min": 279,
+      "max": 284
+    },
+    "THRESHOLD": {
+      "mean": 226.5,
+      "std": 7.5,
+      "min": 219,
+      "max": 234
+    }
+  }
+}

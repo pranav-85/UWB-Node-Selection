@@ -45,6 +45,7 @@ from rl.train_rl2_lstm import (
 )
 from reward.reward import compute_reward
 from localization.trilateration import trilateration_2d, compute_noisy_distances
+from localization.gdop import compute_weighted_gdop
 
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 POSSIBLE_BEACON_COMBOS = list(combinations(range(NUM_BEACONS), NUM_SELECTED_BEACONS))
@@ -257,6 +258,49 @@ def make_rl2_lstm_selection(model, device):
         hidden_state[0] = None
 
     _select.reset = _reset
+    return _select
+
+
+def make_random_selection():
+    """Random beacon selection."""
+    def _select(env):
+        return list(np.random.choice(NUM_BEACONS, NUM_SELECTED_BEACONS, replace=False))
+    return _select
+
+
+def make_nearest_neighbor_selection():
+    """Nearest neighbor beacon selection."""
+    def _select(env):
+        agent_pos = np.array(env.agent.get_position())
+        beacon_positions = np.array([beacon.position for beacon in env.beacons])
+        distances = np.linalg.norm(beacon_positions - agent_pos, axis=1)
+        return list(np.argsort(distances)[:NUM_SELECTED_BEACONS])
+    return _select
+
+
+def make_gdop_selection():
+    """GDOP-optimized beacon selection."""
+    def _select(env):
+        agent_pos = np.array(env.agent.get_position())
+        best_score = float('inf')
+        best_combo = None
+        
+        # Try all combinations of NUM_SELECTED_BEACONS beacons
+        for combo in combinations(range(NUM_BEACONS), NUM_SELECTED_BEACONS):
+            selected_positions = [env.beacons[i].position for i in combo]
+            selected_los_flags = [env.current_links[i] for i in combo]
+            
+            score = compute_weighted_gdop(
+                agent_estimate=agent_pos,
+                beacon_positions=selected_positions,
+                los_flags=selected_los_flags
+            )
+            
+            if score < best_score:
+                best_score = score
+                best_combo = combo
+        
+        return list(best_combo) if best_combo is not None else list(range(NUM_SELECTED_BEACONS))
     return _select
 
 
@@ -515,6 +559,13 @@ def main():
 
     # Build methods dict (only include models that loaded successfully)
     methods: dict = {}
+    
+    # Add baseline methods
+    methods['Random'] = make_random_selection()
+    methods['Nearest Neighbor'] = make_nearest_neighbor_selection()
+    methods['GDOP'] = make_gdop_selection()
+    
+    # Add ML-based methods
     if dqn_trainers:
         methods[f'DQN (Avg {len(dqn_trainers)})'] = make_avg_dqn_selection(dqn_trainers)
     if domain_gen:
@@ -522,11 +573,10 @@ def main():
     if meta_model:
         methods['Meta RL'] = make_meta_rl_selection(meta_model)
     if rl2_model:
-        methods['RL² LSTM'] = make_rl2_lstm_selection(rl2_model, DEVICE)
+        methods['RL2 LSTM'] = make_rl2_lstm_selection(rl2_model, DEVICE)
 
-    if not methods:
-        print("\nERROR: No models found.  Run `python run_experiment.py` first.")
-        return
+    print(f"\n  Baselines     : Random, Nearest Neighbor, GDOP")
+    print(f"  Total methods : {len(methods)}")
 
     # ------------------------------------------------------------------
     # Evaluate on each test environment
@@ -640,15 +690,21 @@ def main():
     print(f"Per-test-env JSON files → {per_env_dir}")
 
     # ------------------------------------------------------------------
-    # Plots
+    # Plots (exclude baseline methods)
     # ------------------------------------------------------------------
     print(f"\n{'=' * 70}")
-    print("GENERATING PLOTS")
+    print("GENERATING PLOTS (ML-based methods only)")
     print(f"{'=' * 70}")
 
-    plot_ecdf(all_results, results_dir / 'generalization_ecdf.png')
-    plot_mean_error_bars(summary, results_dir / 'generalization_mean_error.png')
-    plot_boxplot(all_results, results_dir / 'generalization_boxplot.png')
+    # Filter out baseline methods for plots
+    plot_all_results = {k: v for k, v in all_results.items() 
+                        if k not in ['Random', 'Nearest Neighbor', 'GDOP']}
+    plot_summary = {k: v for k, v in summary.items() 
+                   if k not in ['Random', 'Nearest Neighbor', 'GDOP']}
+
+    plot_ecdf(plot_all_results, results_dir / 'generalization_ecdf.png')
+    plot_mean_error_bars(plot_summary, results_dir / 'generalization_mean_error.png')
+    plot_boxplot(plot_all_results, results_dir / 'generalization_boxplot.png')
 
     # ------------------------------------------------------------------
     # Done
