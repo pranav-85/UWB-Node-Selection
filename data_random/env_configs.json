@@ -1,0 +1,2502 @@
+[
+  {
+    "env_id": 0,
+    "seed": 0,
+    "grid_width": 22,
+    "grid_height": 23,
+    "num_beacons": 6,
+    "beacon_positions": [
+      [
+        1.8097,
+        21.2748
+      ],
+      [
+        10.7186,
+        20.2829
+      ],
+      [
+        17.5971,
+        21.3238
+      ],
+      [
+        8.161,
+        19.7249
+      ],
+      [
+        5.3689,
+        3.9247
+      ],
+      [
+        11.6513,
+        15.8086
+      ]
+    ],
+    "los_probability": 0.601,
+    "cir": {
+      "num_clusters": 2,
+      "rays_per_cluster": 4,
+      "los_max_clusters": 2,
+      "delay_spread_ns": 151.37,
+      "decay_factor": 1.1595
+    },
+    "noise": {
+      "los_std": 0.0642,
+      "nlos_bias_min": 0.3944,
+      "nlos_bias_max": 0.4554
+    },
+    "battery": {
+      "initial_level": 97.37,
+      "consumption_multiplier": 3.2218
+    }
+  },
+  {
+    "env_id": 1,
+    "seed": 1,
+    "grid_width": 14,
+    "grid_height": 28,
+    "num_beacons": 6,
+    "beacon_positions": [
+      [
+        11.1692,
+        20.8581
+      ],
+      [
+        4.0608,
+        13.8813
+      ],
+      [
+        6.3939,
+        17.9414
+      ],
+      [
+        10.4647,
+        3.4403
+      ],
+      [
+        1.3402,
+        22.7299
+      ],
+      [
+        6.1932,
+        20.8193
+      ]
+    ],
+    "los_probability": 0.3011,
+    "cir": {
+      "num_clusters": 3,
+      "rays_per_cluster": 4,
+      "los_max_clusters": 2,
+      "delay_spread_ns": 126.41,
+      "decay_factor": 0.8409
+    },
+    "noise": {
+      "los_std": 0.0459,
+      "nlos_bias_min": 0.3045,
+      "nlos_bias_max": 0.7563
+    },
+    "battery": {
+      "initial_level": 80.37,
+      "consumption_multiplier": 3.7625
+    }
+  },
+  {
+    "env_id": 2,
+    "seed": 2,
+    "grid_width": 11,
+    "grid_height": 12,
+    "num_beacons": 6,
+    "beacon_positions": [
+      [
+        1.7638,
+        9.355
+      ],
+      [
+        7.6237,
+        7.6973
+      ],
+      [
+        3.7732,
+        7.0594
+      ],
+      [
+        2.4254,
+        5.3067
+      ],
+      [
+        9.9534,
+        10.494
+      ],
+      [
+        5.8976,
+        5.4485
+      ]
+    ],
+    "los_probability": 0.4341,
+    "cir": {
+      "num_clusters": 2,
+      "rays_per_cluster": 3,
+      "los_max_clusters": 2,
+      "delay_spread_ns": 103.68,
+      "decay_factor": 0.9274
+    },
+    "noise": {
+      "los_std": 0.049,
+      "nlos_bias_min": 0.4784,
+      "nlos_bias_max": 0.7526
+    },
+    "battery": {
+      "initial_level": 102.42,
+      "consumption_multiplier": 2.4722
+    }
+  },
+  {
+    "env_id": 3,
+    "seed": 3,
+    "grid_width": 17,
+    "grid_height": 28,
+    "num_beacons": 6,
+    "beacon_positions": [
+      [
+        9.1634,
+        10.6188
+      ],
+      [
+        10.0588,
+        17.2687
+      ],
+      [
+        1.9829,
+        1.3424
+      ],
+      [
+        13.562,
+        7.7432
+      ],
+      [
+        4.515,
+        26.8868
+      ],
+      [
+        8.054,
+        22.748
+      ]
+    ],
+    "los_probability": 0.5382,
+    "cir": {
+      "num_clusters": 4,
+      "rays_per_cluster": 3,
+      "los_max_clusters": 2,
+      "delay_spread_ns": 134.27,
+      "decay_factor": 1.1472
+    },
+    "noise": {
+      "los_std": 0.0562,
+      "nlos_bias_min": 0.4483,
+      "nlos_bias_max": 0.8187
+    },
+    "battery": {
+      "initial_level": 82.56,
+      "consumption_multiplier": 3.5165
+    }
+  },
+  {
+    "env_id": 4,
+    "seed": 4,
+    "grid_width": 17,
+    "grid_height": 19,
+    "num_beacons": 6,
+    "beacon_positions": [
+      [
+        2.5475,
+        7.733
+      ],
+      [
+        3.3246,
+        2.1308
+      ],
+      [
+        7.0239,
+        16.6052
+      ],
+      [
+        13.0068,
+        14.0078
+      ],
+      [
+        4.3289,
+        10.1236
+      ],
+      [
+        5.1502,
+        3.9353
+      ]
+    ],
+    "los_probability": 0.3531,
+    "cir": {
+      "num_clusters": 2,
+      "rays_per_cluster": 3,
+      "los_max_clusters": 2,
+      "delay_spread_ns": 164.08,
+      "decay_factor": 0.8774
+    },
+    "noise": {
+      "los_std": 0.0455,
+      "nlos_bias_min": 0.4254,
+      "nlos_bias_max": 0.8459
+    },
+    "battery": {
+      "initial_level": 114.19,
+      "consumption_multiplier": 3.7601
+    }
+  },
+  {
+    "env_id": 5,
+    "seed": 5,
+    "grid_width": 29,
+    "grid_height": 18,
+    "num_beacons": 6,
+    "beacon_positions": [
+      [
+        21.0282,
+        13.7231
+      ],
+      [
+        26.4462,
+        12.8384
+      ],
+      [
+        25.9028,
+        1.4641
+      ],
+      [
+        13.5718,
+        16.0937
+      ],
+      [
+        18.5223,
+        15.4144
+      ],
+      [
+        4.0566,
+        8.5051
+      ]
+    ],
+    "los_probability": 0.4233,
+    "cir": {
+      "num_clusters": 4,
+      "rays_per_cluster": 3,
+      "los_max_clusters": 4,
+      "delay_spread_ns": 64.88,
+      "decay_factor": 1.0925
+    },
+    "noise": {
+      "los_std": 0.0504,
+      "nlos_bias_min": 0.3364,
+      "nlos_bias_max": 0.912
+    },
+    "battery": {
+      "initial_level": 95.58,
+      "consumption_multiplier": 3.5239
+    }
+  },
+  {
+    "env_id": 6,
+    "seed": 6,
+    "grid_width": 28,
+    "grid_height": 12,
+    "num_beacons": 6,
+    "beacon_positions": [
+      [
+        13.6109,
+        3.6162
+      ],
+      [
+        1.0117,
+        7.6282
+      ],
+      [
+        13.2266,
+        8.5973
+      ],
+      [
+        10.7022,
+        8.7014
+      ],
+      [
+        8.0902,
+        9.0192
+      ],
+      [
+        19.9754,
+        5.1401
+      ]
+    ],
+    "los_probability": 0.5692,
+    "cir": {
+      "num_clusters": 4,
+      "rays_per_cluster": 3,
+      "los_max_clusters": 2,
+      "delay_spread_ns": 121.42,
+      "decay_factor": 1.0798
+    },
+    "noise": {
+      "los_std": 0.0664,
+      "nlos_bias_min": 0.4326,
+      "nlos_bias_max": 0.7787
+    },
+    "battery": {
+      "initial_level": 83.52,
+      "consumption_multiplier": 2.8494
+    }
+  },
+  {
+    "env_id": 7,
+    "seed": 7,
+    "grid_width": 20,
+    "grid_height": 14,
+    "num_beacons": 6,
+    "beacon_positions": [
+      [
+        8.1068,
+        1.5794
+      ],
+      [
+        15.7829,
+        2.1296
+      ],
+      [
+        11.4902,
+        11.9164
+      ],
+      [
+        4.8646,
+        2.0314
+      ],
+      [
+        8.5271,
+        3.888
+      ],
+      [
+        10.9189,
+        1.7093
+      ]
+    ],
+    "los_probability": 0.5827,
+    "cir": {
+      "num_clusters": 2,
+      "rays_per_cluster": 5,
+      "los_max_clusters": 2,
+      "delay_spread_ns": 123.88,
+      "decay_factor": 0.9587
+    },
+    "noise": {
+      "los_std": 0.0788,
+      "nlos_bias_min": 0.3093,
+      "nlos_bias_max": 0.9022
+    },
+    "battery": {
+      "initial_level": 91.58,
+      "consumption_multiplier": 2.2885
+    }
+  },
+  {
+    "env_id": 8,
+    "seed": 8,
+    "grid_width": 17,
+    "grid_height": 21,
+    "num_beacons": 6,
+    "beacon_positions": [
+      [
+        15.4344,
+        3.4003
+      ],
+      [
+        11.5723,
+        2.6185
+      ],
+      [
+        4.7116,
+        19.9834
+      ],
+      [
+        4.141,
+        13.1955
+      ],
+      [
+        7.887,
+        9.6095
+      ],
+      [
+        8.4247,
+        4.6524
+      ]
+    ],
+    "los_probability": 0.7153,
+    "cir": {
+      "num_clusters": 2,
+      "rays_per_cluster": 4,
+      "los_max_clusters": 2,
+      "delay_spread_ns": 156.62,
+      "decay_factor": 1.0805
+    },
+    "noise": {
+      "los_std": 0.056,
+      "nlos_bias_min": 0.3949,
+      "nlos_bias_max": 0.9462
+    },
+    "battery": {
+      "initial_level": 109.04,
+      "consumption_multiplier": 3.3259
+    }
+  },
+  {
+    "env_id": 9,
+    "seed": 9,
+    "grid_width": 24,
+    "grid_height": 29,
+    "num_beacons": 6,
+    "beacon_positions": [
+      [
+        9.2129,
+        4.7406
+      ],
+      [
+        20.0644,
+        1.1737
+      ],
+      [
+        12.0612,
+        25.254
+      ],
+      [
+        2.7779,
+        15.9653
+      ],
+      [
+        14.5663,
+        2.1042
+      ],
+      [
+        9.3384,
+        19.994
+      ]
+    ],
+    "los_probability": 0.526,
+    "cir": {
+      "num_clusters": 4,
+      "rays_per_cluster": 4,
+      "los_max_clusters": 2,
+      "delay_spread_ns": 50.32,
+      "decay_factor": 0.8205
+    },
+    "noise": {
+      "los_std": 0.0366,
+      "nlos_bias_min": 0.4743,
+      "nlos_bias_max": 0.9953
+    },
+    "battery": {
+      "initial_level": 82.53,
+      "consumption_multiplier": 3.3769
+    }
+  },
+  {
+    "env_id": 10,
+    "seed": 10,
+    "grid_width": 28,
+    "grid_height": 11,
+    "num_beacons": 6,
+    "beacon_positions": [
+      [
+        12.1511,
+        6.2028
+      ],
+      [
+        6.3586,
+        8.3199
+      ],
+      [
+        22.4133,
+        6.8813
+      ],
+      [
+        5.166,
+        5.686
+      ],
+      [
+        9.5221,
+        3.25
+      ],
+      [
+        25.7732,
+        9.969
+      ]
+    ],
+    "los_probability": 0.3223,
+    "cir": {
+      "num_clusters": 2,
+      "rays_per_cluster": 5,
+      "los_max_clusters": 2,
+      "delay_spread_ns": 88.69,
+      "decay_factor": 0.9134
+    },
+    "noise": {
+      "los_std": 0.0637,
+      "nlos_bias_min": 0.3914,
+      "nlos_bias_max": 0.8088
+    },
+    "battery": {
+      "initial_level": 106.47,
+      "consumption_multiplier": 2.266
+    }
+  },
+  {
+    "env_id": 11,
+    "seed": 11,
+    "grid_width": 24,
+    "grid_height": 27,
+    "num_beacons": 6,
+    "beacon_positions": [
+      [
+        19.851,
+        20.5305
+      ],
+      [
+        10.9403,
+        22.3761
+      ],
+      [
+        5.1778,
+        21.0975
+      ],
+      [
+        11.4668,
+        16.349
+      ],
+      [
+        5.0958,
+        12.1648
+      ],
+      [
+        4.1195,
+        14.4673
+      ]
+    ],
+    "los_probability": 0.7452,
+    "cir": {
+      "num_clusters": 4,
+      "rays_per_cluster": 3,
+      "los_max_clusters": 4,
+      "delay_spread_ns": 196.79,
+      "decay_factor": 1.1859
+    },
+    "noise": {
+      "los_std": 0.0627,
+      "nlos_bias_min": 0.4231,
+      "nlos_bias_max": 0.514
+    },
+    "battery": {
+      "initial_level": 80.6,
+      "consumption_multiplier": 3.0568
+    }
+  },
+  {
+    "env_id": 12,
+    "seed": 12,
+    "grid_width": 25,
+    "grid_height": 18,
+    "num_beacons": 6,
+    "beacon_positions": [
+      [
+        16.1219,
+        11.6626
+      ],
+      [
+        4.2798,
+        1.1738
+      ],
+      [
+        9.6194,
+        5.3848
+      ],
+      [
+        19.638,
+        12.0495
+      ],
+      [
+        14.8335,
+        9.931
+      ],
+      [
+        16.2104,
+        3.3248
+      ]
+    ],
+    "los_probability": 0.52,
+    "cir": {
+      "num_clusters": 2,
+      "rays_per_cluster": 4,
+      "los_max_clusters": 2,
+      "delay_spread_ns": 30.59,
+      "decay_factor": 1.1275
+    },
+    "noise": {
+      "los_std": 0.0337,
+      "nlos_bias_min": 0.4374,
+      "nlos_bias_max": 0.627
+    },
+    "battery": {
+      "initial_level": 96.18,
+      "consumption_multiplier": 3.6848
+    }
+  },
+  {
+    "env_id": 13,
+    "seed": 13,
+    "grid_width": 18,
+    "grid_height": 19,
+    "num_beacons": 6,
+    "beacon_positions": [
+      [
+        11.9641,
+        12.6294
+      ],
+      [
+        14.5894,
+        4.1573
+      ],
+      [
+        4.6889,
+        3.5017
+      ],
+      [
+        4.6026,
+        13.4784
+      ],
+      [
+        3.0834,
+        10.0324
+      ],
+      [
+        4.4225,
+        6.0092
+      ]
+    ],
+    "los_probability": 0.5158,
+    "cir": {
+      "num_clusters": 4,
+      "rays_per_cluster": 5,
+      "los_max_clusters": 2,
+      "delay_spread_ns": 198.74,
+      "decay_factor": 1.1338
+    },
+    "noise": {
+      "los_std": 0.0342,
+      "nlos_bias_min": 0.4588,
+      "nlos_bias_max": 0.9396
+    },
+    "battery": {
+      "initial_level": 90.5,
+      "consumption_multiplier": 2.9021
+    }
+  },
+  {
+    "env_id": 14,
+    "seed": 14,
+    "grid_width": 13,
+    "grid_height": 29,
+    "num_beacons": 6,
+    "beacon_positions": [
+      [
+        8.7284,
+        18.6051
+      ],
+      [
+        11.3439,
+        8.3201
+      ],
+      [
+        3.8135,
+        20.8196
+      ],
+      [
+        8.243,
+        9.1807
+      ],
+      [
+        8.5266,
+        11.7102
+      ],
+      [
+        9.5527,
+        4.1968
+      ]
+    ],
+    "los_probability": 0.4116,
+    "cir": {
+      "num_clusters": 3,
+      "rays_per_cluster": 4,
+      "los_max_clusters": 3,
+      "delay_spread_ns": 84.92,
+      "decay_factor": 1.0531
+    },
+    "noise": {
+      "los_std": 0.0558,
+      "nlos_bias_min": 0.3322,
+      "nlos_bias_max": 0.7766
+    },
+    "battery": {
+      "initial_level": 91.01,
+      "consumption_multiplier": 2.0212
+    }
+  },
+  {
+    "env_id": 15,
+    "seed": 15,
+    "grid_width": 16,
+    "grid_height": 10,
+    "num_beacons": 6,
+    "beacon_positions": [
+      [
+        8.2984,
+        1.2894
+      ],
+      [
+        13.7822,
+        2.9116
+      ],
+      [
+        1.7693,
+        7.439
+      ],
+      [
+        6.1421,
+        1.937
+      ],
+      [
+        7.5286,
+        3.8459
+      ],
+      [
+        5.2789,
+        6.813
+      ]
+    ],
+    "los_probability": 0.5102,
+    "cir": {
+      "num_clusters": 4,
+      "rays_per_cluster": 4,
+      "los_max_clusters": 3,
+      "delay_spread_ns": 108.13,
+      "decay_factor": 0.9844
+    },
+    "noise": {
+      "los_std": 0.07,
+      "nlos_bias_min": 0.3879,
+      "nlos_bias_max": 0.5808
+    },
+    "battery": {
+      "initial_level": 107.76,
+      "consumption_multiplier": 2.9012
+    }
+  },
+  {
+    "env_id": 16,
+    "seed": 16,
+    "grid_width": 21,
+    "grid_height": 25,
+    "num_beacons": 6,
+    "beacon_positions": [
+      [
+        10.1291,
+        10.5899
+      ],
+      [
+        13.4964,
+        6.9537
+      ],
+      [
+        13.0649,
+        1.233
+      ],
+      [
+        6.7388,
+        8.7065
+      ],
+      [
+        3.6971,
+        18.0985
+      ],
+      [
+        6.8921,
+        19.1526
+      ]
+    ],
+    "los_probability": 0.7781,
+    "cir": {
+      "num_clusters": 3,
+      "rays_per_cluster": 3,
+      "los_max_clusters": 2,
+      "delay_spread_ns": 165.37,
+      "decay_factor": 1.067
+    },
+    "noise": {
+      "los_std": 0.0314,
+      "nlos_bias_min": 0.3914,
+      "nlos_bias_max": 0.7728
+    },
+    "battery": {
+      "initial_level": 91.85,
+      "consumption_multiplier": 2.4487
+    }
+  },
+  {
+    "env_id": 17,
+    "seed": 17,
+    "grid_width": 26,
+    "grid_height": 23,
+    "num_beacons": 6,
+    "beacon_positions": [
+      [
+        20.3606,
+        21.1704
+      ],
+      [
+        7.951,
+        17.0883
+      ],
+      [
+        17.9013,
+        14.889
+      ],
+      [
+        3.6439,
+        1.5657
+      ],
+      [
+        10.2201,
+        16.6743
+      ],
+      [
+        7.0572,
+        11.5337
+      ]
+    ],
+    "los_probability": 0.4587,
+    "cir": {
+      "num_clusters": 4,
+      "rays_per_cluster": 5,
+      "los_max_clusters": 3,
+      "delay_spread_ns": 44.76,
+      "decay_factor": 1.0205
+    },
+    "noise": {
+      "los_std": 0.037,
+      "nlos_bias_min": 0.4583,
+      "nlos_bias_max": 0.5648
+    },
+    "battery": {
+      "initial_level": 115.31,
+      "consumption_multiplier": 3.0657
+    }
+  },
+  {
+    "env_id": 18,
+    "seed": 18,
+    "grid_width": 15,
+    "grid_height": 13,
+    "num_beacons": 6,
+    "beacon_positions": [
+      [
+        9.5986,
+        4.6802
+      ],
+      [
+        3.5732,
+        6.3847
+      ],
+      [
+        7.4225,
+        6.2775
+      ],
+      [
+        6.9583,
+        3.9098
+      ],
+      [
+        4.2994,
+        8.6107
+      ],
+      [
+        11.2333,
+        10.5254
+      ]
+    ],
+    "los_probability": 0.772,
+    "cir": {
+      "num_clusters": 2,
+      "rays_per_cluster": 3,
+      "los_max_clusters": 2,
+      "delay_spread_ns": 56.04,
+      "decay_factor": 0.9462
+    },
+    "noise": {
+      "los_std": 0.0554,
+      "nlos_bias_min": 0.4621,
+      "nlos_bias_max": 0.9418
+    },
+    "battery": {
+      "initial_level": 110.24,
+      "consumption_multiplier": 2.9873
+    }
+  },
+  {
+    "env_id": 19,
+    "seed": 19,
+    "grid_width": 11,
+    "grid_height": 26,
+    "num_beacons": 6,
+    "beacon_positions": [
+      [
+        2.0862,
+        5.7879
+      ],
+      [
+        4.1245,
+        13.7008
+      ],
+      [
+        6.2624,
+        15.28
+      ],
+      [
+        1.969,
+        10.8848
+      ],
+      [
+        9.7121,
+        21.0282
+      ],
+      [
+        7.9597,
+        22.5328
+      ]
+    ],
+    "los_probability": 0.3114,
+    "cir": {
+      "num_clusters": 4,
+      "rays_per_cluster": 3,
+      "los_max_clusters": 2,
+      "delay_spread_ns": 185.67,
+      "decay_factor": 0.8456
+    },
+    "noise": {
+      "los_std": 0.0528,
+      "nlos_bias_min": 0.4732,
+      "nlos_bias_max": 0.512
+    },
+    "battery": {
+      "initial_level": 83.94,
+      "consumption_multiplier": 2.0336
+    }
+  },
+  {
+    "env_id": 20,
+    "seed": 20,
+    "grid_width": 14,
+    "grid_height": 18,
+    "num_beacons": 6,
+    "beacon_positions": [
+      [
+        9.0881,
+        14.5894
+      ],
+      [
+        2.2182,
+        6.2388
+      ],
+      [
+        11.8652,
+        1.4317
+      ],
+      [
+        5.8809,
+        2.2001
+      ],
+      [
+        2.5009,
+        8.5905
+      ],
+      [
+        7.968,
+        7.5917
+      ]
+    ],
+    "los_probability": 0.3999,
+    "cir": {
+      "num_clusters": 4,
+      "rays_per_cluster": 5,
+      "los_max_clusters": 3,
+      "delay_spread_ns": 79.17,
+      "decay_factor": 0.8371
+    },
+    "noise": {
+      "los_std": 0.0559,
+      "nlos_bias_min": 0.4683,
+      "nlos_bias_max": 0.6836
+    },
+    "battery": {
+      "initial_level": 88.25,
+      "consumption_multiplier": 2.4853
+    }
+  },
+  {
+    "env_id": 21,
+    "seed": 21,
+    "grid_width": 15,
+    "grid_height": 23,
+    "num_beacons": 6,
+    "beacon_positions": [
+      [
+        9.967,
+        14.335
+      ],
+      [
+        7.2283,
+        5.5363
+      ],
+      [
+        11.3042,
+        17.9649
+      ],
+      [
+        7.6619,
+        11.6068
+      ],
+      [
+        4.0687,
+        1.0668
+      ],
+      [
+        5.8236,
+        13.2926
+      ]
+    ],
+    "los_probability": 0.3346,
+    "cir": {
+      "num_clusters": 2,
+      "rays_per_cluster": 3,
+      "los_max_clusters": 2,
+      "delay_spread_ns": 98.63,
+      "decay_factor": 1.1981
+    },
+    "noise": {
+      "los_std": 0.0685,
+      "nlos_bias_min": 0.3814,
+      "nlos_bias_max": 0.6547
+    },
+    "battery": {
+      "initial_level": 118.27,
+      "consumption_multiplier": 3.0803
+    }
+  },
+  {
+    "env_id": 22,
+    "seed": 22,
+    "grid_width": 14,
+    "grid_height": 17,
+    "num_beacons": 6,
+    "beacon_positions": [
+      [
+        1.2834,
+        15.9795
+      ],
+      [
+        3.211,
+        2.8089
+      ],
+      [
+        8.8171,
+        6.1847
+      ],
+      [
+        11.6746,
+        4.4761
+      ],
+      [
+        8.2137,
+        14.9813
+      ],
+      [
+        9.4974,
+        1.7266
+      ]
+    ],
+    "los_probability": 0.7407,
+    "cir": {
+      "num_clusters": 4,
+      "rays_per_cluster": 4,
+      "los_max_clusters": 3,
+      "delay_spread_ns": 95.87,
+      "decay_factor": 0.8722
+    },
+    "noise": {
+      "los_std": 0.0356,
+      "nlos_bias_min": 0.4062,
+      "nlos_bias_max": 0.839
+    },
+    "battery": {
+      "initial_level": 119.32,
+      "consumption_multiplier": 3.9005
+    }
+  },
+  {
+    "env_id": 23,
+    "seed": 23,
+    "grid_width": 19,
+    "grid_height": 12,
+    "num_beacons": 6,
+    "beacon_positions": [
+      [
+        1.2903,
+        4.0674
+      ],
+      [
+        7.4461,
+        4.5808
+      ],
+      [
+        13.3412,
+        3.6738
+      ],
+      [
+        1.2393,
+        7.2016
+      ],
+      [
+        16.3282,
+        2.059
+      ],
+      [
+        17.6817,
+        5.9824
+      ]
+    ],
+    "los_probability": 0.3098,
+    "cir": {
+      "num_clusters": 4,
+      "rays_per_cluster": 5,
+      "los_max_clusters": 3,
+      "delay_spread_ns": 84.62,
+      "decay_factor": 0.823
+    },
+    "noise": {
+      "los_std": 0.0692,
+      "nlos_bias_min": 0.4178,
+      "nlos_bias_max": 0.8008
+    },
+    "battery": {
+      "initial_level": 104.84,
+      "consumption_multiplier": 3.9415
+    }
+  },
+  {
+    "env_id": 24,
+    "seed": 24,
+    "grid_width": 22,
+    "grid_height": 28,
+    "num_beacons": 6,
+    "beacon_positions": [
+      [
+        4.6518,
+        26.9553
+      ],
+      [
+        4.8819,
+        18.4431
+      ],
+      [
+        2.8357,
+        20.7012
+      ],
+      [
+        15.489,
+        20.9145
+      ],
+      [
+        9.8276,
+        23.5101
+      ],
+      [
+        20.7582,
+        4.0054
+      ]
+    ],
+    "los_probability": 0.5584,
+    "cir": {
+      "num_clusters": 3,
+      "rays_per_cluster": 5,
+      "los_max_clusters": 3,
+      "delay_spread_ns": 142.73,
+      "decay_factor": 0.9999
+    },
+    "noise": {
+      "los_std": 0.0798,
+      "nlos_bias_min": 0.4374,
+      "nlos_bias_max": 0.5802
+    },
+    "battery": {
+      "initial_level": 104.45,
+      "consumption_multiplier": 3.3624
+    }
+  },
+  {
+    "env_id": 25,
+    "seed": 25,
+    "grid_width": 22,
+    "grid_height": 10,
+    "num_beacons": 6,
+    "beacon_positions": [
+      [
+        5.2809,
+        7.9737
+      ],
+      [
+        13.7292,
+        1.3391
+      ],
+      [
+        20.0594,
+        3.0455
+      ],
+      [
+        7.118,
+        4.3926
+      ],
+      [
+        14.7335,
+        7.6579
+      ],
+      [
+        11.2464,
+        7.3557
+      ]
+    ],
+    "los_probability": 0.6125,
+    "cir": {
+      "num_clusters": 2,
+      "rays_per_cluster": 5,
+      "los_max_clusters": 2,
+      "delay_spread_ns": 112.47,
+      "decay_factor": 1.0099
+    },
+    "noise": {
+      "los_std": 0.0742,
+      "nlos_bias_min": 0.4667,
+      "nlos_bias_max": 0.8283
+    },
+    "battery": {
+      "initial_level": 104.02,
+      "consumption_multiplier": 2.7126
+    }
+  },
+  {
+    "env_id": 26,
+    "seed": 26,
+    "grid_width": 16,
+    "grid_height": 16,
+    "num_beacons": 6,
+    "beacon_positions": [
+      [
+        7.0544,
+        8.6162
+      ],
+      [
+        2.7902,
+        14.3164
+      ],
+      [
+        7.6816,
+        11.2224
+      ],
+      [
+        9.7277,
+        3.4026
+      ],
+      [
+        7.0144,
+        4.3943
+      ],
+      [
+        11.4683,
+        11.0411
+      ]
+    ],
+    "los_probability": 0.401,
+    "cir": {
+      "num_clusters": 4,
+      "rays_per_cluster": 3,
+      "los_max_clusters": 4,
+      "delay_spread_ns": 188.82,
+      "decay_factor": 0.8889
+    },
+    "noise": {
+      "los_std": 0.0365,
+      "nlos_bias_min": 0.4195,
+      "nlos_bias_max": 0.9065
+    },
+    "battery": {
+      "initial_level": 118.27,
+      "consumption_multiplier": 2.7286
+    }
+  },
+  {
+    "env_id": 27,
+    "seed": 27,
+    "grid_width": 30,
+    "grid_height": 25,
+    "num_beacons": 6,
+    "beacon_positions": [
+      [
+        20.6383,
+        23.0121
+      ],
+      [
+        6.4993,
+        2.5035
+      ],
+      [
+        24.0792,
+        8.6605
+      ],
+      [
+        11.4265,
+        19.7419
+      ],
+      [
+        6.1334,
+        21.9227
+      ],
+      [
+        14.7527,
+        2.6408
+      ]
+    ],
+    "los_probability": 0.7589,
+    "cir": {
+      "num_clusters": 4,
+      "rays_per_cluster": 5,
+      "los_max_clusters": 2,
+      "delay_spread_ns": 129.94,
+      "decay_factor": 0.9701
+    },
+    "noise": {
+      "los_std": 0.0509,
+      "nlos_bias_min": 0.3105,
+      "nlos_bias_max": 0.6135
+    },
+    "battery": {
+      "initial_level": 93.99,
+      "consumption_multiplier": 3.69
+    }
+  },
+  {
+    "env_id": 28,
+    "seed": 28,
+    "grid_width": 13,
+    "grid_height": 14,
+    "num_beacons": 6,
+    "beacon_positions": [
+      [
+        7.0022,
+        9.5451
+      ],
+      [
+        3.4905,
+        8.6552
+      ],
+      [
+        9.4002,
+        3.5311
+      ],
+      [
+        2.5875,
+        2.9545
+      ],
+      [
+        11.5073,
+        8.2768
+      ],
+      [
+        3.2135,
+        5.884
+      ]
+    ],
+    "los_probability": 0.3348,
+    "cir": {
+      "num_clusters": 3,
+      "rays_per_cluster": 4,
+      "los_max_clusters": 2,
+      "delay_spread_ns": 51.75,
+      "decay_factor": 1.1731
+    },
+    "noise": {
+      "los_std": 0.056,
+      "nlos_bias_min": 0.4446,
+      "nlos_bias_max": 0.8874
+    },
+    "battery": {
+      "initial_level": 104.5,
+      "consumption_multiplier": 3.8351
+    }
+  },
+  {
+    "env_id": 29,
+    "seed": 29,
+    "grid_width": 27,
+    "grid_height": 12,
+    "num_beacons": 6,
+    "beacon_positions": [
+      [
+        9.6458,
+        9.4485
+      ],
+      [
+        8.2149,
+        6.1035
+      ],
+      [
+        25.3465,
+        2.0373
+      ],
+      [
+        12.1176,
+        3.2481
+      ],
+      [
+        11.4904,
+        8.3045
+      ],
+      [
+        20.8179,
+        6.6261
+      ]
+    ],
+    "los_probability": 0.3982,
+    "cir": {
+      "num_clusters": 4,
+      "rays_per_cluster": 4,
+      "los_max_clusters": 3,
+      "delay_spread_ns": 70.09,
+      "decay_factor": 1.1002
+    },
+    "noise": {
+      "los_std": 0.0709,
+      "nlos_bias_min": 0.4917,
+      "nlos_bias_max": 0.7319
+    },
+    "battery": {
+      "initial_level": 85.75,
+      "consumption_multiplier": 2.6142
+    }
+  },
+  {
+    "env_id": 30,
+    "seed": 30,
+    "grid_width": 27,
+    "grid_height": 19,
+    "num_beacons": 6,
+    "beacon_positions": [
+      [
+        16.2751,
+        11.5719
+      ],
+      [
+        21.6763,
+        17.6078
+      ],
+      [
+        2.2119,
+        7.395
+      ],
+      [
+        4.3518,
+        2.3824
+      ],
+      [
+        1.1902,
+        9.8801
+      ],
+      [
+        24.31,
+        1.4395
+      ]
+    ],
+    "los_probability": 0.7999,
+    "cir": {
+      "num_clusters": 4,
+      "rays_per_cluster": 5,
+      "los_max_clusters": 3,
+      "delay_spread_ns": 194.99,
+      "decay_factor": 1.0618
+    },
+    "noise": {
+      "los_std": 0.0568,
+      "nlos_bias_min": 0.3135,
+      "nlos_bias_max": 0.3296
+    },
+    "battery": {
+      "initial_level": 112.21,
+      "consumption_multiplier": 3.3439
+    }
+  },
+  {
+    "env_id": 31,
+    "seed": 31,
+    "grid_width": 10,
+    "grid_height": 25,
+    "num_beacons": 6,
+    "beacon_positions": [
+      [
+        1.8992,
+        10.0353
+      ],
+      [
+        6.4709,
+        4.1899
+      ],
+      [
+        1.8995,
+        6.3315
+      ],
+      [
+        6.9252,
+        16.2298
+      ],
+      [
+        2.0926,
+        13.3202
+      ],
+      [
+        4.582,
+        10.4891
+      ]
+    ],
+    "los_probability": 0.7982,
+    "cir": {
+      "num_clusters": 2,
+      "rays_per_cluster": 3,
+      "los_max_clusters": 2,
+      "delay_spread_ns": 158.64,
+      "decay_factor": 1.1551
+    },
+    "noise": {
+      "los_std": 0.0471,
+      "nlos_bias_min": 0.3412,
+      "nlos_bias_max": 0.5994
+    },
+    "battery": {
+      "initial_level": 103.87,
+      "consumption_multiplier": 2.4931
+    }
+  },
+  {
+    "env_id": 32,
+    "seed": 32,
+    "grid_width": 12,
+    "grid_height": 16,
+    "num_beacons": 6,
+    "beacon_positions": [
+      [
+        2.4465,
+        10.777
+      ],
+      [
+        3.3779,
+        1.3405
+      ],
+      [
+        1.3855,
+        5.5461
+      ],
+      [
+        7.9057,
+        14.8972
+      ],
+      [
+        5.6877,
+        9.417
+      ],
+      [
+        6.4241,
+        11.9415
+      ]
+    ],
+    "los_probability": 0.5623,
+    "cir": {
+      "num_clusters": 3,
+      "rays_per_cluster": 5,
+      "los_max_clusters": 2,
+      "delay_spread_ns": 170.58,
+      "decay_factor": 1.1814
+    },
+    "noise": {
+      "los_std": 0.0401,
+      "nlos_bias_min": 0.3163,
+      "nlos_bias_max": 0.3989
+    },
+    "battery": {
+      "initial_level": 119.11,
+      "consumption_multiplier": 2.2239
+    }
+  },
+  {
+    "env_id": 33,
+    "seed": 33,
+    "grid_width": 28,
+    "grid_height": 15,
+    "num_beacons": 6,
+    "beacon_positions": [
+      [
+        17.4381,
+        11.6211
+      ],
+      [
+        8.2096,
+        9.4742
+      ],
+      [
+        24.1611,
+        12.8148
+      ],
+      [
+        5.8493,
+        9.4725
+      ],
+      [
+        17.045,
+        7.5441
+      ],
+      [
+        26.1211,
+        7.8675
+      ]
+    ],
+    "los_probability": 0.5226,
+    "cir": {
+      "num_clusters": 4,
+      "rays_per_cluster": 5,
+      "los_max_clusters": 2,
+      "delay_spread_ns": 74.23,
+      "decay_factor": 0.9237
+    },
+    "noise": {
+      "los_std": 0.0548,
+      "nlos_bias_min": 0.3105,
+      "nlos_bias_max": 0.7294
+    },
+    "battery": {
+      "initial_level": 109.43,
+      "consumption_multiplier": 2.8523
+    }
+  },
+  {
+    "env_id": 34,
+    "seed": 34,
+    "grid_width": 26,
+    "grid_height": 21,
+    "num_beacons": 6,
+    "beacon_positions": [
+      [
+        15.0579,
+        17.0232
+      ],
+      [
+        22.5675,
+        17.7615
+      ],
+      [
+        9.7527,
+        19.028
+      ],
+      [
+        11.1778,
+        6.8175
+      ],
+      [
+        3.2688,
+        10.7219
+      ],
+      [
+        4.7158,
+        6.2104
+      ]
+    ],
+    "los_probability": 0.6053,
+    "cir": {
+      "num_clusters": 2,
+      "rays_per_cluster": 5,
+      "los_max_clusters": 2,
+      "delay_spread_ns": 164.22,
+      "decay_factor": 0.9477
+    },
+    "noise": {
+      "los_std": 0.067,
+      "nlos_bias_min": 0.441,
+      "nlos_bias_max": 0.4744
+    },
+    "battery": {
+      "initial_level": 95.47,
+      "consumption_multiplier": 2.3335
+    }
+  },
+  {
+    "env_id": 35,
+    "seed": 35,
+    "grid_width": 27,
+    "grid_height": 20,
+    "num_beacons": 6,
+    "beacon_positions": [
+      [
+        19.7635,
+        14.4515
+      ],
+      [
+        22.6261,
+        6.1463
+      ],
+      [
+        25.1393,
+        11.2013
+      ],
+      [
+        10.1655,
+        13.9122
+      ],
+      [
+        15.6324,
+        14.5066
+      ],
+      [
+        10.1073,
+        18.1943
+      ]
+    ],
+    "los_probability": 0.3056,
+    "cir": {
+      "num_clusters": 4,
+      "rays_per_cluster": 4,
+      "los_max_clusters": 3,
+      "delay_spread_ns": 151.59,
+      "decay_factor": 0.9364
+    },
+    "noise": {
+      "los_std": 0.0548,
+      "nlos_bias_min": 0.3047,
+      "nlos_bias_max": 0.9859
+    },
+    "battery": {
+      "initial_level": 83.15,
+      "consumption_multiplier": 2.6816
+    }
+  },
+  {
+    "env_id": 36,
+    "seed": 36,
+    "grid_width": 20,
+    "grid_height": 11,
+    "num_beacons": 6,
+    "beacon_positions": [
+      [
+        18.6979,
+        9.6332
+      ],
+      [
+        16.7512,
+        1.0036
+      ],
+      [
+        12.2858,
+        3.2288
+      ],
+      [
+        14.148,
+        4.8915
+      ],
+      [
+        11.0816,
+        5.885
+      ],
+      [
+        11.3709,
+        8.4461
+      ]
+    ],
+    "los_probability": 0.7908,
+    "cir": {
+      "num_clusters": 3,
+      "rays_per_cluster": 4,
+      "los_max_clusters": 2,
+      "delay_spread_ns": 90.57,
+      "decay_factor": 0.8494
+    },
+    "noise": {
+      "los_std": 0.0549,
+      "nlos_bias_min": 0.4529,
+      "nlos_bias_max": 0.7397
+    },
+    "battery": {
+      "initial_level": 87.38,
+      "consumption_multiplier": 3.4109
+    }
+  },
+  {
+    "env_id": 37,
+    "seed": 37,
+    "grid_width": 29,
+    "grid_height": 12,
+    "num_beacons": 6,
+    "beacon_positions": [
+      [
+        26.2535,
+        7.6543
+      ],
+      [
+        21.1638,
+        7.3443
+      ],
+      [
+        1.9569,
+        10.8373
+      ],
+      [
+        12.819,
+        8.8911
+      ],
+      [
+        27.5277,
+        5.5686
+      ],
+      [
+        22.4795,
+        10.2527
+      ]
+    ],
+    "los_probability": 0.7865,
+    "cir": {
+      "num_clusters": 3,
+      "rays_per_cluster": 4,
+      "los_max_clusters": 2,
+      "delay_spread_ns": 192.73,
+      "decay_factor": 1.1885
+    },
+    "noise": {
+      "los_std": 0.0719,
+      "nlos_bias_min": 0.3182,
+      "nlos_bias_max": 0.3694
+    },
+    "battery": {
+      "initial_level": 91.54,
+      "consumption_multiplier": 2.7222
+    }
+  },
+  {
+    "env_id": 38,
+    "seed": 38,
+    "grid_width": 30,
+    "grid_height": 23,
+    "num_beacons": 6,
+    "beacon_positions": [
+      [
+        13.0126,
+        16.2103
+      ],
+      [
+        2.8545,
+        15.6551
+      ],
+      [
+        11.4981,
+        13.7688
+      ],
+      [
+        5.7626,
+        8.2359
+      ],
+      [
+        8.475,
+        7.9191
+      ],
+      [
+        21.3447,
+        10.9341
+      ]
+    ],
+    "los_probability": 0.7814,
+    "cir": {
+      "num_clusters": 4,
+      "rays_per_cluster": 4,
+      "los_max_clusters": 2,
+      "delay_spread_ns": 188.04,
+      "decay_factor": 0.8337
+    },
+    "noise": {
+      "los_std": 0.0544,
+      "nlos_bias_min": 0.3873,
+      "nlos_bias_max": 0.5383
+    },
+    "battery": {
+      "initial_level": 95.22,
+      "consumption_multiplier": 3.445
+    }
+  },
+  {
+    "env_id": 39,
+    "seed": 39,
+    "grid_width": 16,
+    "grid_height": 18,
+    "num_beacons": 6,
+    "beacon_positions": [
+      [
+        6.3956,
+        4.121
+      ],
+      [
+        6.5384,
+        10.0029
+      ],
+      [
+        10.0414,
+        5.075
+      ],
+      [
+        12.4057,
+        5.7041
+      ],
+      [
+        13.3588,
+        2.1794
+      ],
+      [
+        1.1206,
+        7.7816
+      ]
+    ],
+    "los_probability": 0.5111,
+    "cir": {
+      "num_clusters": 2,
+      "rays_per_cluster": 4,
+      "los_max_clusters": 2,
+      "delay_spread_ns": 68.06,
+      "decay_factor": 0.8266
+    },
+    "noise": {
+      "los_std": 0.0515,
+      "nlos_bias_min": 0.4155,
+      "nlos_bias_max": 0.7459
+    },
+    "battery": {
+      "initial_level": 108.98,
+      "consumption_multiplier": 3.7289
+    }
+  },
+  {
+    "env_id": 40,
+    "seed": 40,
+    "grid_width": 24,
+    "grid_height": 28,
+    "num_beacons": 6,
+    "beacon_positions": [
+      [
+        20.3131,
+        1.828
+      ],
+      [
+        7.2134,
+        26.0066
+      ],
+      [
+        15.615,
+        4.3377
+      ],
+      [
+        8.6646,
+        23.8735
+      ],
+      [
+        10.6968,
+        1.7444
+      ],
+      [
+        20.716,
+        4.3767
+      ]
+    ],
+    "los_probability": 0.6206,
+    "cir": {
+      "num_clusters": 4,
+      "rays_per_cluster": 5,
+      "los_max_clusters": 3,
+      "delay_spread_ns": 172.98,
+      "decay_factor": 0.8213
+    },
+    "noise": {
+      "los_std": 0.0696,
+      "nlos_bias_min": 0.3626,
+      "nlos_bias_max": 0.5222
+    },
+    "battery": {
+      "initial_level": 93.0,
+      "consumption_multiplier": 3.5626
+    }
+  },
+  {
+    "env_id": 41,
+    "seed": 41,
+    "grid_width": 22,
+    "grid_height": 20,
+    "num_beacons": 6,
+    "beacon_positions": [
+      [
+        5.6144,
+        3.9887
+      ],
+      [
+        19.2767,
+        11.4029
+      ],
+      [
+        14.8027,
+        10.9551
+      ],
+      [
+        8.6709,
+        14.1692
+      ],
+      [
+        12.5286,
+        15.0618
+      ],
+      [
+        9.7879,
+        3.7909
+      ]
+    ],
+    "los_probability": 0.3749,
+    "cir": {
+      "num_clusters": 4,
+      "rays_per_cluster": 4,
+      "los_max_clusters": 2,
+      "delay_spread_ns": 66.35,
+      "decay_factor": 1.0765
+    },
+    "noise": {
+      "los_std": 0.0592,
+      "nlos_bias_min": 0.324,
+      "nlos_bias_max": 0.7213
+    },
+    "battery": {
+      "initial_level": 97.3,
+      "consumption_multiplier": 2.5637
+    }
+  },
+  {
+    "env_id": 42,
+    "seed": 42,
+    "grid_width": 30,
+    "grid_height": 13,
+    "num_beacons": 6,
+    "beacon_positions": [
+      [
+        1.7003,
+        4.0253
+      ],
+      [
+        7.2499,
+        9.1012
+      ],
+      [
+        19.9476,
+        10.814
+      ],
+      [
+        3.4343,
+        5.6411
+      ],
+      [
+        15.1499,
+        1.2919
+      ],
+      [
+        16.2584,
+        3.4248
+      ]
+    ],
+    "los_probability": 0.5946,
+    "cir": {
+      "num_clusters": 2,
+      "rays_per_cluster": 3,
+      "los_max_clusters": 2,
+      "delay_spread_ns": 81.25,
+      "decay_factor": 0.8622
+    },
+    "noise": {
+      "los_std": 0.0779,
+      "nlos_bias_min": 0.3673,
+      "nlos_bias_max": 0.426
+    },
+    "battery": {
+      "initial_level": 83.87,
+      "consumption_multiplier": 3.695
+    }
+  },
+  {
+    "env_id": 43,
+    "seed": 43,
+    "grid_width": 11,
+    "grid_height": 19,
+    "num_beacons": 6,
+    "beacon_positions": [
+      [
+        7.266,
+        3.4469
+      ],
+      [
+        5.1628,
+        12.418
+      ],
+      [
+        8.1366,
+        8.7042
+      ],
+      [
+        5.4845,
+        1.3257
+      ],
+      [
+        4.8915,
+        7.3304
+      ],
+      [
+        2.5857,
+        15.4649
+      ]
+    ],
+    "los_probability": 0.7101,
+    "cir": {
+      "num_clusters": 3,
+      "rays_per_cluster": 3,
+      "los_max_clusters": 2,
+      "delay_spread_ns": 48.91,
+      "decay_factor": 1.1338
+    },
+    "noise": {
+      "los_std": 0.0364,
+      "nlos_bias_min": 0.3774,
+      "nlos_bias_max": 0.9864
+    },
+    "battery": {
+      "initial_level": 90.88,
+      "consumption_multiplier": 2.3637
+    }
+  },
+  {
+    "env_id": 44,
+    "seed": 44,
+    "grid_width": 23,
+    "grid_height": 26,
+    "num_beacons": 6,
+    "beacon_positions": [
+      [
+        12.3814,
+        21.6889
+      ],
+      [
+        4.71,
+        6.4038
+      ],
+      [
+        1.611,
+        3.7996
+      ],
+      [
+        11.788,
+        24.7478
+      ],
+      [
+        15.5637,
+        10.0822
+      ],
+      [
+        9.506,
+        17.5914
+      ]
+    ],
+    "los_probability": 0.4631,
+    "cir": {
+      "num_clusters": 2,
+      "rays_per_cluster": 4,
+      "los_max_clusters": 2,
+      "delay_spread_ns": 131.1,
+      "decay_factor": 0.8448
+    },
+    "noise": {
+      "los_std": 0.0335,
+      "nlos_bias_min": 0.3189,
+      "nlos_bias_max": 0.972
+    },
+    "battery": {
+      "initial_level": 84.31,
+      "consumption_multiplier": 3.2506
+    }
+  },
+  {
+    "env_id": 45,
+    "seed": 45,
+    "grid_width": 18,
+    "grid_height": 23,
+    "num_beacons": 6,
+    "beacon_positions": [
+      [
+        8.8085,
+        2.7195
+      ],
+      [
+        6.4197,
+        2.519
+      ],
+      [
+        1.1766,
+        6.9609
+      ],
+      [
+        12.8955,
+        1.7509
+      ],
+      [
+        10.999,
+        3.8352
+      ],
+      [
+        13.7211,
+        16.4763
+      ]
+    ],
+    "los_probability": 0.4055,
+    "cir": {
+      "num_clusters": 4,
+      "rays_per_cluster": 4,
+      "los_max_clusters": 2,
+      "delay_spread_ns": 130.33,
+      "decay_factor": 0.8571
+    },
+    "noise": {
+      "los_std": 0.0329,
+      "nlos_bias_min": 0.3064,
+      "nlos_bias_max": 0.5288
+    },
+    "battery": {
+      "initial_level": 94.26,
+      "consumption_multiplier": 3.4504
+    }
+  },
+  {
+    "env_id": 46,
+    "seed": 46,
+    "grid_width": 12,
+    "grid_height": 22,
+    "num_beacons": 6,
+    "beacon_positions": [
+      [
+        1.3996,
+        12.738
+      ],
+      [
+        9.8759,
+        13.6905
+      ],
+      [
+        9.024,
+        1.6078
+      ],
+      [
+        1.5446,
+        1.6174
+      ],
+      [
+        6.4867,
+        6.9064
+      ],
+      [
+        4.2965,
+        15.2653
+      ]
+    ],
+    "los_probability": 0.6813,
+    "cir": {
+      "num_clusters": 3,
+      "rays_per_cluster": 5,
+      "los_max_clusters": 3,
+      "delay_spread_ns": 84.87,
+      "decay_factor": 0.9883
+    },
+    "noise": {
+      "los_std": 0.0715,
+      "nlos_bias_min": 0.3919,
+      "nlos_bias_max": 0.8154
+    },
+    "battery": {
+      "initial_level": 104.77,
+      "consumption_multiplier": 2.8653
+    }
+  },
+  {
+    "env_id": 47,
+    "seed": 47,
+    "grid_width": 21,
+    "grid_height": 12,
+    "num_beacons": 6,
+    "beacon_positions": [
+      [
+        9.1735,
+        5.5367
+      ],
+      [
+        8.4559,
+        1.4091
+      ],
+      [
+        2.9467,
+        3.6381
+      ],
+      [
+        19.3459,
+        5.8155
+      ],
+      [
+        11.3871,
+        10.174
+      ],
+      [
+        5.3709,
+        6.2327
+      ]
+    ],
+    "los_probability": 0.4795,
+    "cir": {
+      "num_clusters": 2,
+      "rays_per_cluster": 3,
+      "los_max_clusters": 2,
+      "delay_spread_ns": 149.01,
+      "decay_factor": 0.9414
+    },
+    "noise": {
+      "los_std": 0.0471,
+      "nlos_bias_min": 0.415,
+      "nlos_bias_max": 0.5297
+    },
+    "battery": {
+      "initial_level": 111.54,
+      "consumption_multiplier": 3.4583
+    }
+  },
+  {
+    "env_id": 48,
+    "seed": 48,
+    "grid_width": 27,
+    "grid_height": 20,
+    "num_beacons": 6,
+    "beacon_positions": [
+      [
+        4.2973,
+        13.8078
+      ],
+      [
+        8.5563,
+        17.8899
+      ],
+      [
+        5.141,
+        18.3896
+      ],
+      [
+        22.8402,
+        2.9354
+      ],
+      [
+        17.2329,
+        4.9249
+      ],
+      [
+        13.79,
+        16.3056
+      ]
+    ],
+    "los_probability": 0.3775,
+    "cir": {
+      "num_clusters": 2,
+      "rays_per_cluster": 3,
+      "los_max_clusters": 2,
+      "delay_spread_ns": 96.28,
+      "decay_factor": 0.853
+    },
+    "noise": {
+      "los_std": 0.0636,
+      "nlos_bias_min": 0.4901,
+      "nlos_bias_max": 0.519
+    },
+    "battery": {
+      "initial_level": 101.93,
+      "consumption_multiplier": 3.8728
+    }
+  },
+  {
+    "env_id": 49,
+    "seed": 49,
+    "grid_width": 12,
+    "grid_height": 21,
+    "num_beacons": 6,
+    "beacon_positions": [
+      [
+        5.1324,
+        3.0996
+      ],
+      [
+        8.5211,
+        10.7144
+      ],
+      [
+        1.4967,
+        1.8513
+      ],
+      [
+        8.3593,
+        3.9326
+      ],
+      [
+        8.3374,
+        12.9784
+      ],
+      [
+        6.0428,
+        17.2602
+      ]
+    ],
+    "los_probability": 0.6013,
+    "cir": {
+      "num_clusters": 4,
+      "rays_per_cluster": 4,
+      "los_max_clusters": 3,
+      "delay_spread_ns": 25.48,
+      "decay_factor": 1.0906
+    },
+    "noise": {
+      "los_std": 0.0348,
+      "nlos_bias_min": 0.4458,
+      "nlos_bias_max": 0.6268
+    },
+    "battery": {
+      "initial_level": 94.33,
+      "consumption_multiplier": 3.3107
+    }
+  }
+]

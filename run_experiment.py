@@ -22,6 +22,8 @@ import torch
 from pathlib import Path
 from datetime import datetime
 from itertools import combinations
+import matplotlib.pyplot as plt
+from scipy import stats
 
 # ---------------------------------------------------------------------------
 # Path setup: add both src/ and src/rl/ so that internal sibling imports
@@ -83,39 +85,39 @@ def has_valid_beacon_geometry(beacon_positions: list, min_area: float = MIN_TRIA
 # ============================================================
 
 def generate_random_environment(seed: int) -> dict:
-    """
-    Generate a single randomized environment configuration.
+    import numpy as np
+    import random
 
-    Each call with the same seed produces the same config (reproducibility).
-
-    Varied parameters:
-      - Grid size [10, 30]
-      - Beacon positions (random, with min-distance constraint)
-      - LoS probability [0.3, 0.8]
-      - CIR parameters (clusters, rays, delay spread, decay)
-      - Noise parameters (LoS std, NLoS bias range)
-      - Battery parameters (initial level, consumption multiplier)
-
-    Beacon count is fixed at 6 to match existing model architectures.
-    """
     rng = random.Random(seed)
+    np_rng = np.random.default_rng(seed)  # ✅ Proper independent RNG
 
-    grid_width = rng.randint(10, 30)
-    grid_height = rng.randint(10, 30)
-    num_beacons = NUM_BEACONS  # fixed at 6
+    mu, sigma = 20, 5
+    min_grid, max_grid = 10, 30
+    num_beacons = NUM_BEACONS
 
-    # --- Beacon positions (min-distance apart + non-collinear) ---
+    # ---------- CLEAN NORMAL SAMPLING ----------
+    def sample_truncated_normal():
+        while True:
+            val = np_rng.normal(mu, sigma)
+            if min_grid <= val <= max_grid:
+                return int(val)  # ❗ no round → smoother distribution
+
+    grid_width = sample_truncated_normal()
+    grid_height = sample_truncated_normal()
+
+    # ---------- BEACON POSITIONS ----------
     beacon_positions = []
     min_distance = 2.0
+
     for _ in range(num_beacons):
         for _ in range(100):
             x = rng.uniform(1.0, grid_width - 1.0)
             y = rng.uniform(1.0, grid_height - 1.0)
-            valid = all(
-                np.sqrt((x - bx) ** 2 + (y - by) ** 2) >= min_distance
+
+            if all(
+                np.hypot(x - bx, y - by) >= min_distance
                 for bx, by in beacon_positions
-            )
-            if valid:
+            ):
                 beacon_positions.append([round(x, 4), round(y, 4)])
                 break
         else:
@@ -125,25 +127,26 @@ def generate_random_environment(seed: int) -> dict:
             ])
 
     if not has_valid_beacon_geometry(beacon_positions):
-        # Deterministic jitter fallback to break near-collinearity.
-        beacon_positions[-1][1] = round(min(grid_height - 1.0, beacon_positions[-1][1] + 1.0), 4)
+        beacon_positions[-1][1] = round(
+            min(grid_height - 1.0, beacon_positions[-1][1] + 1.0), 4
+        )
 
-    # --- LoS probability ---
+    # ---------- LoS ----------
     los_probability = round(rng.uniform(0.4, 0.8), 4)
 
-    # --- CIR parameters ---
+    # ---------- CIR ----------
     num_clusters = rng.randint(2, 4)
     rays_per_cluster = rng.randint(3, 5)
     los_max_clusters = rng.randint(2, min(4, num_clusters))
     delay_spread = round(rng.uniform(20, 100), 2)
     decay_factor = round(rng.uniform(0.9, 1.1), 4)
 
-    # --- Noise parameters ---
+    # ---------- NOISE ----------
     los_std = round(rng.uniform(0.03, 0.08), 4)
     nlos_bias_min = round(rng.uniform(0.3, 0.5), 4)
     nlos_bias_max = round(rng.uniform(nlos_bias_min, 1.0), 4)
 
-    # --- Battery parameters ---
+    # ---------- BATTERY ----------
     initial_battery = round(rng.uniform(80.0, 120.0), 2)
     consumption_multiplier = round(rng.uniform(2.0, 4.0), 4)
 
@@ -173,11 +176,70 @@ def generate_random_environment(seed: int) -> dict:
         },
     }
 
-
 def generate_all_environments(num_envs: int = TOTAL_ENVIRONMENTS) -> list:
     """Generate *num_envs* reproducible environment configs (seeds 0..N-1)."""
     configs = [generate_random_environment(seed=i) for i in range(num_envs)]
+    
+    # Validation: compute and print distribution statistics
+    widths = [c['grid_width'] for c in configs]
+    heights = [c['grid_height'] for c in configs]
+    
+    print(f"\n  Gaussian Distribution Validation (μ=20, σ=5, bounds=[10,30]):")
+    print(f"    Widths  - mean: {np.mean(widths):.2f}, std: {np.std(widths):.2f}, range: [{min(widths)}, {max(widths)}]")
+    print(f"    Heights - mean: {np.mean(heights):.2f}, std: {np.std(heights):.2f}, range: [{min(heights)}, {max(heights)}]")
+    
     return configs
+
+
+# ============================================================
+# Distribution Visualization
+# ============================================================
+
+def plot_environment_distributions(configs: list, output_dir: Path) -> Path:
+    """
+    Plot and save histograms of grid dimensions with normal distribution overlay.
+    
+    Creates a 1x2 subplot figure showing the distribution of grid widths and heights
+    with fitted normal distribution curves overlaid.
+    """
+    widths = np.array([c['grid_width'] for c in configs])
+    heights = np.array([c['grid_height'] for c in configs])
+    
+    mu, sigma = 20, 5
+    
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
+    
+    # Plot widths
+    ax1.hist(widths, bins=12, density=True, alpha=0.7, color='skyblue', edgecolor='black', label='Sampled widths')
+    x_range = np.linspace(widths.min() - 1, widths.max() + 1, 100)
+    ax1.plot(x_range, stats.norm.pdf(x_range, mu, sigma), 'r-', linewidth=2, label=f'Normal(μ={mu}, σ={sigma})')
+    ax1.axvline(widths.mean(), color='green', linestyle='--', linewidth=2, label=f'Sample mean: {widths.mean():.2f}')
+    ax1.set_xlabel('Grid Width', fontsize=12)
+    ax1.set_ylabel('Density', fontsize=12)
+    ax1.set_title('Grid Width Distribution', fontsize=13, fontweight='bold')
+    ax1.legend()
+    ax1.grid(alpha=0.3)
+    
+    # Plot heights
+    ax2.hist(heights, bins=12, density=True, alpha=0.7, color='lightcoral', edgecolor='black', label='Sampled heights')
+    ax2.plot(x_range, stats.norm.pdf(x_range, mu, sigma), 'b-', linewidth=2, label=f'Normal(μ={mu}, σ={sigma})')
+    ax2.axvline(heights.mean(), color='green', linestyle='--', linewidth=2, label=f'Sample mean: {heights.mean():.2f}')
+    ax2.set_xlabel('Grid Height', fontsize=12)
+    ax2.set_ylabel('Density', fontsize=12)
+    ax2.set_title('Grid Height Distribution', fontsize=13, fontweight='bold')
+    ax2.legend()
+    ax2.grid(alpha=0.3)
+    
+    plt.tight_layout()
+    
+    # Save plot
+    output_dir.mkdir(parents=True, exist_ok=True)
+    plot_path = output_dir / 'environment_distributions.png'
+    plt.savefig(str(plot_path), dpi=300, bbox_inches='tight')
+    print(f"  Distribution plot saved → {plot_path}")
+    plt.close()
+    
+    return plot_path
 
 
 # ============================================================
@@ -449,6 +511,12 @@ def main():
           f"(avg {np.mean(grid_sizes):.0f})")
     print(f"  LoS probs  : {min(los_probs):.2f}-{max(los_probs):.2f} "
           f"(avg {np.mean(los_probs):.2f})")
+
+    # Plot and save distribution
+    print("\n" + "-" * 60)
+    print("Visualizing Environment Distributions")
+    print("-" * 60)
+    plot_environment_distributions(all_configs, data_dir)
 
     # ------------------------------------------------------------------
     # STEP 2 — Train / Test split
